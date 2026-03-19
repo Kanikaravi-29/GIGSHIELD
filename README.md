@@ -355,7 +355,7 @@ By the end of the six-week development cycle, GigShield will deliver a complete 
 
 ## Repository Link
 
-[(https://github.com/Kanikaravi-29/GIGSHIELD)]
+[https://github.com/Kanikaravi-29/GIGSHIELD]
 
 ## Demo Video
 
