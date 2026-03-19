@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ShieldCheck, AlertTriangle, CloudRain, ThermometerSun,
-  MapPin, Zap, TrendingUp, Activity, LogOut,
+  MapPin, Zap, TrendingUp, Activity, LogOut, Info, Shield, Clock,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -14,6 +14,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { RISK_HISTORY, RISK_WEIGHTS } from '@/data/mockData';
 import DisruptionMap from '@/components/DisruptionMap';
@@ -36,6 +37,22 @@ export default function WorkerDashboard() {
   const [coverageFactor, setCoverageFactor] = useState(0.8);
   const [activeTriggers, setActiveTriggers] = useState<RiskTrigger[]>(['rain']);
   const [packageType, setPackageType] = useState<'basic' | 'standard' | 'premium'>('standard');
+  const [isPolicyActive, setIsPolicyActive] = useState(false);
+
+  const policyDates = useMemo(() => {
+    const start = new Date();
+    const end = new Date();
+    end.setDate(start.getDate() + 7);
+    const formatDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  }, []);
+
+  const handleActivate = () => {
+    setIsPolicyActive(true);
+    toast.success("Policy activated successfully", {
+      description: `Your ${packageType} coverage is now live until ${policyDates.split(' - ')[1]}.`,
+    });
+  };
 
   const riskScore = useMemo(() => {
     const base = 5;
@@ -70,7 +87,6 @@ export default function WorkerDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-8 py-4 border-b border-border/30">
         <div className="flex items-center gap-2">
           <div className="gradient-primary p-1.5 rounded-lg">
@@ -90,6 +106,14 @@ export default function WorkerDashboard() {
           </Button>
         </div>
       </header>
+
+      {/* Trust Message Strip */}
+      <div className="bg-primary/5 border-b border-primary/10 px-8 py-2">
+        <div className="flex items-center gap-2 text-[11px] text-primary/80 font-medium">
+          <Info className="w-3.5 h-3.5" />
+          <span>Claims are verified automatically using disruption and activity signals for fair payouts.</span>
+        </div>
+      </div>
 
       <div className="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Controls */}
@@ -180,20 +204,52 @@ export default function WorkerDashboard() {
                 <ShieldCheck className="w-24 h-24 -mr-8 -mt-8" />
               </div>
               <CardContent className="p-6 space-y-4 relative z-10">
-                <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-widest">Est. Weekly Premium</p>
-                <div className="flex items-baseline gap-2">
-                  <h2 className="text-4xl font-black font-mono text-primary-foreground">₹{weeklyPremium}</h2>
-                  <span className="text-primary-foreground/60 text-sm">/ week</span>
-                </div>
-                <div className="pt-4 border-t border-primary-foreground/20 flex justify-between items-center">
-                  <div className="text-xs">
-                    <p className="text-primary-foreground/70">Instant Payout Trigger</p>
-                    <p className="font-bold text-lg text-primary-foreground">₹{potentialPayout}</p>
+                <div>
+                  <p className="text-primary-foreground/70 text-[10px] font-bold uppercase tracking-widest mb-1">Estimated Weekly Premium</p>
+                  <div className="flex items-baseline gap-2">
+                    <h2 className="text-4xl font-black font-mono text-primary-foreground">₹{weeklyPremium}</h2>
+                    <span className="text-primary-foreground/60 text-sm">/ week</span>
                   </div>
-                  <button className="bg-primary-foreground text-primary px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90 transition-opacity">
-                    Activate
-                  </button>
                 </div>
+                
+                <div className="grid grid-cols-2 gap-4 py-3 border-t border-primary-foreground/20">
+                  <div className="text-xs">
+                    <p className="text-primary-foreground/70 text-[9px] uppercase font-bold">Selected Package</p>
+                    <p className="font-bold text-primary-foreground capitalize">{packageType}</p>
+                  </div>
+                  <div className="text-xs">
+                    <p className="text-primary-foreground/70 text-[9px] uppercase font-bold">Protection Level</p>
+                    <p className="font-bold text-primary-foreground">{Math.round(coverageFactor * 100)}%</p>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-primary-foreground/20 flex justify-between items-center">
+                  <div className="text-xs">
+                    <p className="text-primary-foreground/70 text-[10px] uppercase font-bold">Instant Payout Trigger</p>
+                    <p className="font-bold text-lg text-primary-foreground">₹{potentialPayout}</p>
+                    <p className="text-[9px] text-primary-foreground/60 mt-0.5">
+                      Active: {activeTriggers.map(t => TRIGGER_META.find(m => m.id === t)?.label).join(', ')}
+                    </p>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handleActivate}
+                  disabled={isPolicyActive}
+                  className={`w-full font-bold mt-2 shadow-lg transition-all ${
+                    isPolicyActive 
+                      ? 'bg-success text-success-foreground hover:bg-success cursor-default' 
+                      : 'bg-primary-foreground text-primary hover:bg-primary-foreground/90'
+                  }`}
+                >
+                  {isPolicyActive ? (
+                    <span className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4" /> Policy Active
+                    </span>
+                  ) : (
+                    "Activate Policy"
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -207,6 +263,70 @@ export default function WorkerDashboard() {
             <MetricCard label="Predicted Loss" value={`₹${predictedLoss}`} color="text-warning" />
             <MetricCard label="Coverage Amount" value={`₹${coverageAmount}`} color="text-primary" />
             <MetricCard label="Active Policies" value="1,240" color="text-primary" />
+          </motion.div>
+
+          {/* New Sections: Coverage & Claim Status */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            {/* Coverage Status Card */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-success" /> Coverage Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Weekly Coverage</p>
+                  <Badge className={`${isPolicyActive ? 'bg-success/20 text-success border-success/30' : 'bg-muted/20 text-muted-foreground border-border'} hover:none text-[10px]`}>
+                    {isPolicyActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Policy Period</p>
+                  <p className="text-xs font-bold">{isPolicyActive ? policyDates : 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Coverage Level</p>
+                  <p className="text-xs font-bold">{isPolicyActive ? `${Math.round(coverageFactor * 100)}% Protection` : '—'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Trigger Protection</p>
+                  <p className="text-xs font-bold">{isPolicyActive ? `${activeTriggers.length} Active Triggers` : '—'}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Claim Status Card */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-warning" /> Claim Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Current Status</p>
+                  <Badge variant="outline" className="border-warning text-warning text-[10px]">Under Review</Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Trigger Reason</p>
+                  <p className="text-xs font-bold">Heavy Rain (Mar 18)</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Estimated Payout</p>
+                  <p className="text-xs font-bold text-success">₹{potentialPayout}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Last Update</p>
+                  <p className="text-xs font-bold text-muted-foreground">2 hours ago</p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           {/* Chart */}
@@ -262,23 +382,26 @@ export default function WorkerDashboard() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
               <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium text-foreground">Recent Payouts</CardTitle>
+                  <CardTitle className="text-sm font-medium text-foreground">Claim History</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {[
-                      { date: 'Mar 12', reason: 'Rain Trigger', amount: '₹1,120', status: 'Paid' },
-                      { date: 'Mar 08', reason: 'Platform Outage', amount: '₹1,400', status: 'Paid' },
-                      { date: 'Mar 05', reason: 'Zone Curfew', amount: '₹960', status: 'Paid' },
-                    ].map((payout, i) => (
+                      { date: 'Mar 12', type: 'Rain Trigger', amount: '₹1,120', status: 'Paid' },
+                      { date: 'Mar 08', type: 'Platform Outage', amount: '₹1,400', status: 'Paid' },
+                      { date: 'Mar 05', type: 'Zone Curfew', amount: '₹960', status: 'Paid' },
+                    ].map((claim, i) => (
                       <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background border border-border">
                         <div>
-                          <p className="text-xs font-bold text-foreground">{payout.reason}</p>
-                          <p className="text-[10px] text-muted-foreground">{payout.date}</p>
+                          <p className="text-xs font-bold text-foreground">{claim.type}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                             <p className="text-[10px] text-muted-foreground">{claim.date}</p>
+                             <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
+                             <p className="text-[10px] text-success font-semibold px-1 rounded bg-success/10">{claim.status}</p>
+                          </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-mono font-bold text-success">{payout.amount}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">{payout.status}</p>
+                          <p className="text-xs font-mono font-bold text-foreground">{claim.amount}</p>
                         </div>
                       </div>
                     ))}
