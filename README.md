@@ -1,3 +1,21 @@
+## Repository Link
+
+[GIGSHIELD Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
+
+---
+
+## Demo Video
+
+[Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)
+
+---
+
+## Try It Out Link
+
+[Try It Out](https://gigshield-iia9.onrender.com)
+
+---
+
 # GigShield: AI-Powered Parametric Insurance for Gig Workers
 
 GigShield is an AI-powered parametric insurance platform designed to protect delivery workers in India’s gig economy from income loss caused by external disruptions such as heavy rain, extreme heat, curfews, warehouse outages, and delivery platform failures.
