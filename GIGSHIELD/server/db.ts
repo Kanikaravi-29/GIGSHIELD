@@ -2,10 +2,16 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import bcrypt from 'bcryptjs';
 
-// Open SQLite database file using absolute path to ensure consistency
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Open SQLite database file using dynamic absolute path for cross-platform compatibility
 export const getDB = async () => {
   return open({
-    filename: 'C:/Users/ELCOT/Desktop/GIGSHIELD/GIGSHIELD/database.sqlite',
+    filename: path.join(__dirname, '../database.sqlite'),
     driver: sqlite3.Database
   });
 };
