@@ -1,2 +1,0 @@
-﻿origin	https://github.com/Kanikaravi-29/GIGSHIELD.git (fetch)
-origin	https://github.com/Kanikaravi-29/GIGSHIELD.git (push)
