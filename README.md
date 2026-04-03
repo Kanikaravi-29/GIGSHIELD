@@ -481,7 +481,7 @@ By the end of the six-week development cycle, GigShield will deliver a complete 
 
 ## Demo Video
 
-[Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)]
+[Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)
 
 ## PPT Link
 

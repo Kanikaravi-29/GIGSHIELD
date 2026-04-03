@@ -49,7 +49,7 @@ export default function LandingPage() {
 
           <motion.h1 custom={1} variants={fadeUp} className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.1] mb-6">
             Income Protection<br />
-            <span className="text-primary">for Gig Workers</span>
+            <span className="text-primary">for Gig Partners</span>
           </motion.h1>
 
           <motion.p custom={2} variants={fadeUp} className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -64,7 +64,7 @@ export default function LandingPage() {
             </Link>
             <Link to="/login">
               <Button variant="outline" size="lg" className="border-border text-foreground px-8 text-base">
-                View Demo Dashboard
+                View Dashboard
               </Button>
             </Link>
           </motion.div>
@@ -129,7 +129,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="px-6 md:px-12 py-8 border-t border-border/30 text-center">
         <p className="text-xs text-muted-foreground">
-          © 2026 GigShield Pro — Parametric Insurance for the Gig Economy. Built for Hackathon Demo.
+          © 2026 GigShield Pro — Parametric Insurance for the Gig Economy.
         </p>
       </footer>
     </div>
