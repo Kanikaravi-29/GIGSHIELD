@@ -637,7 +637,7 @@ const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
 
 // For SPA support: catch-all route to serve index.html for any frontend routes
-app.get('/*', (req, res, next) => {
+app.get('/(.*)', (req, res, next) => {
   // If the request starts with /api/, ignore it (it's for the backend routes)
   if (req.url.startsWith('/api/')) return next();
   res.sendFile(path.join(distPath, 'index.html'));
