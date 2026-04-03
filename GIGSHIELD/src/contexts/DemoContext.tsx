@@ -11,7 +11,7 @@ export interface Claim {
   created_at: string;
   trigger_type: string;
   payout_amount: number;
-  status: 'Under Review' | 'Approved' | 'Paid';
+  status: 'Under Review' | 'Approved' | 'Paid' | 'Rejected' | 'Flagged';
   gps_match: boolean;
   fraud_risk: string;
   zone?: string;

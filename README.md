@@ -289,8 +289,7 @@ This makes GigShield not only a hackathon solution, but also a scalable insurtec
 - Express.js
 
 ### Database
-- PostgreSQL
-- Prisma ORM
+- SQLite 3
 
 ### Other Integrations
 - Mapbox

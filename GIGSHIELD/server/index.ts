@@ -259,12 +259,12 @@ app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
         }
         // ---------------------------------------------------------------
 
-        const payout = Math.round(policy.coverage_level * 1000);
-
         // --- DYNAMIC FRAUD DETECTION LOGIC ---
         // Fetch worker data for income-based risk analysis
         const worker = await db.get('SELECT daily_income FROM users WHERE id = ?', [userId]);
         const dailyTarget = worker?.daily_income || 1400;
+
+        const payout = Math.round(dailyTarget * policy.coverage_level);
 
         // 1. Velocity Check (Claim frequency in last 24 hours)
         const recentClaims = await db.get(
@@ -516,9 +516,9 @@ app.get('/api/admin/claims', authenticateToken, requireAdminType(['control', 'se
   try {
     const claims = await db.all(`
       SELECT 
-        c.id, c.trigger_type, c.payout_amount, c.status,
+        c.id, c.trigger_type, c.payout_amount, c.status, c.zone,
         c.fraud_risk, c.gps_match, c.created_at, c.updated_at,
-        u.name as worker_name, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone
+        u.name as worker_name, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone as user_home_zone
       FROM claims c
       JOIN users u ON c.user_id = u.id
       ORDER BY c.created_at DESC
@@ -536,7 +536,7 @@ app.get('/api/admin/claims/:id', authenticateToken, requireAdminType(['control',
   try {
     const claim = await db.get(`
       SELECT 
-        c.*, u.name as worker_name, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone, u.daily_income
+        c.*, u.name as worker_name, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone as user_home_zone, u.daily_income
       FROM claims c
       JOIN users u ON c.user_id = u.id
       WHERE c.id = ?

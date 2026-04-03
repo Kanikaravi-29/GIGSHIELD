@@ -75,7 +75,7 @@ export default function RegisterPage() {
 
     } catch (err) {
       console.error(err);
-      toast.error('Network Error', { description: 'Could not communicate with Postgres backend.' });
+      toast.error('Network Error', { description: 'Could not communicate with SQLite 3 backend.' });
     } finally {
       setLoading(false);
     }

@@ -47,7 +47,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Network Error', { description: 'Could not connect to PostgreSQL backend.' });
+      toast.error('Network Error', { description: 'Could not connect to SQLite 3 backend.' });
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export default function LoginPage() {
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Email</label>
               <Input
                 type="email"
-                placeholder={role === 'admin' ? 'admin@platform.com' : 'hebe@mail.com'}
+                placeholder={role === 'admin' ? 'admin@platform.com' : 'hebejohn@gmail.com'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-background border-border"

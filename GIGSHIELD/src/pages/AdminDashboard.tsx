@@ -199,19 +199,24 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-8 py-4 border-b border-border/30">
-        <div className="flex items-center gap-2">
-          <div className="gradient-primary p-1.5 rounded-lg">
-            <ShieldCheck className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-br from-primary to-blue-500 p-2 rounded-xl shadow-lg ring-1 ring-white/20">
+            <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            GigShield <span className="text-primary">Admin</span>
-          </h1>
-          <Badge className="ml-3 bg-primary/20 text-primary border-primary/30 uppercase text-[10px] px-2 py-0.5">
-            {user?.adminType || 'Standard'} Mode
-          </Badge>
-          <Badge variant="outline" className="ml-2 bg-card border-border text-success text-[10px]">
-            <Activity className="w-3 h-3 mr-1" /> Live
-          </Badge>
+          <div className="flex flex-col -space-y-1">
+            <h1 className="text-xl font-bold tracking-tighter text-foreground">
+              GigShield <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">Admin</span>
+            </h1>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Global Governance Portal</span>
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <Badge className="bg-primary/20 text-primary border-primary/30 uppercase text-[9px] px-1.5 h-5 font-bold">
+              {user?.adminType || 'Standard'} Mode
+            </Badge>
+            <Badge variant="outline" className="bg-success/10 border-success/20 text-success text-[10px] h-5 px-1.5 flex items-center gap-1 font-bold">
+              <Activity className="w-2.5 h-2.5" /> LIVE
+            </Badge>
+          </div>
         </div>
         <div className="flex items-center gap-2 mt-3 md:mt-0">
           <Button variant="ghost" size="sm" onClick={fetchAll}>
@@ -431,99 +436,104 @@ export default function AdminDashboard() {
                       {claims.length === 0 ? (
                         <tr><td colSpan={8} className="py-8 text-center text-muted-foreground text-[11px]">No claims in database yet. Trigger a disruption from the Worker Dashboard.</td></tr>
                       ) : claims.map((c: any) => (
-                        <tr
-                          key={c.id}
-                          onClick={() => setSelectedClaim(selectedClaim?.id === c.id ? null : c)}
-                          className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-background ${selectedClaim?.id === c.id ? 'bg-primary/5' : ''}`}
-                        >
-                          <td className="py-2.5 font-semibold text-foreground">{c.worker_name} <span className="text-[10px] text-muted-foreground ml-1">({c.platform_id})</span></td>
-                          <td className="py-2.5 text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
-                          <td className="py-2.5 capitalize text-muted-foreground">{c.trigger_type} Event</td>
-                          <td className="py-2.5 text-muted-foreground">{c.city}</td>
-                          <td className="py-2.5 text-right font-mono font-bold text-success">₹{c.payout_amount.toLocaleString()}</td>
-                          <td className="py-2.5 text-center">
-                            <Badge className={`text-[9px] border-none ${c.status === 'Approved' ? 'bg-success/20 text-success' : c.status === 'Rejected' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning'}`}>
-                              {c.status}
-                            </Badge>
-                          </td>
-                          <td className="py-2.5 text-center">
-                            <Badge variant="outline" className={`text-[9px] ${c.fraud_risk === 'Low' ? 'text-success border-success/30' : 'text-destructive border-destructive/30 animate-pulse'}`}>
-                              {c.fraud_risk} Risk
-                            </Badge>
-                          </td>
-                          <td className="py-2.5 text-center">
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Activity className="w-3 h-3" /></Button>
-                          </td>
-                        </tr>
+                        <React.Fragment key={c.id}>
+                          <tr
+                            onClick={() => setSelectedClaim(selectedClaim?.id === c.id ? null : c)}
+                            className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-background ${selectedClaim?.id === c.id ? 'bg-primary/5' : ''}`}
+                          >
+                            <td className="py-2.5 font-semibold text-foreground">{c.worker_name} <span className="text-[10px] text-muted-foreground ml-1">({c.platform_id})</span></td>
+                            <td className="py-2.5 text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
+                            <td className="py-2.5 capitalize text-muted-foreground">{c.trigger_type} Event</td>
+                            <td className="py-2.5 text-muted-foreground">{c.city} <span className="text-[10px] text-primary/70 font-mono">({c.zone || 'N/A'})</span></td>
+                            <td className="py-2.5 text-right font-mono font-bold text-success">₹{c.payout_amount.toLocaleString()}</td>
+                            <td className="py-2.5 text-center">
+                              <Badge className={`text-[9px] border-none ${c.status === 'Approved' ? 'bg-success/20 text-success' : c.status === 'Rejected' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning'}`}>
+                                {c.status}
+                              </Badge>
+                            </td>
+                            <td className="py-2.5 text-center">
+                              <Badge variant="outline" className={`text-[9px] ${c.fraud_risk === 'Low' ? 'text-success border-success/30' : 'text-destructive border-destructive/30 animate-pulse'}`}>
+                                {c.fraud_risk} Risk
+                              </Badge>
+                            </td>
+                            <td className="py-2.5 text-center">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Activity className="w-3 h-3" /></Button>
+                            </td>
+                          </tr>
+
+                          {selectedClaim?.id === c.id && (
+                            <tr>
+                              <td colSpan={8} className="p-0 border-b border-border/50 bg-primary/5">
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: 'auto' }}
+                                  className="p-6 space-y-6 overflow-hidden"
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <h3 className="text-sm font-bold text-foreground">Verification Panel</h3>
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border text-[10px] font-mono text-muted-foreground">
+                                      <Fingerprint className="w-3 h-3" /> Claim #{selectedClaim.id}
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <DetailBlock label="FULL NAME" value={selectedClaim.worker_name} />
+                                    <DetailBlock label="PLATFORM VERIFIED" value={selectedClaim.platform} />
+                                    <DetailBlock label="CITY / ZONE MATCH" value={`${selectedClaim.city} ${selectedClaim.zone}`} />
+                                    <DetailBlock label="HISTORICAL AVG" value={`₹${selectedClaim.payout_amount * 1.2}`} />
+                                  </div>
+
+                                  <div className="p-5 rounded-xl border border-primary/20 bg-primary/5 space-y-5 relative overflow-hidden">
+                                    <div className="flex justify-between items-start relative z-10">
+                                      <div>
+                                        <p className="text-[10px] uppercase font-bold text-primary tracking-widest mb-1">AUTOMATED FRAUD SCORE</p>
+                                        <div className="space-y-2 mt-4">
+                                          <SuccessStep label="Weather/Platform Trigger Verified" />
+                                          <SuccessStep label="GPS Location Consistency" status={selectedClaim.gps_match ? 'success' : 'warning'} />
+                                          <SuccessStep label="Activity Pattern Match" status={selectedClaim.fraud_risk === 'High' ? 'danger' : 'success'} />
+                                          <SuccessStep label="Device Integrity Check" />
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <span className={`text-4xl font-black font-mono leading-none ${selectedClaim.fraud_risk === 'High' ? 'text-destructive' : selectedClaim.fraud_risk === 'Medium' ? 'text-warning' : 'text-success'}`}>
+                                          {selectedClaim.fraud_risk === 'High' ? '88' : selectedClaim.fraud_risk === 'Medium' ? '54' : '42'}/100
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                                      <Activity className="w-32 h-32 text-primary" />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex gap-4">
+                                    {user?.adminType === 'control' && selectedClaim.status === 'Under Review' && (
+                                      <>
+                                        <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Approved')} className="flex-1 bg-success hover:bg-success/90 h-12 text-sm font-bold gap-2">
+                                          <ThumbsUp className="w-4 h-4" /> Approve Claim
+                                        </Button>
+                                        <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Rejected')} variant="outline" className="flex-1 border-destructive text-destructive hover:bg-destructive/10 h-12 text-sm font-bold gap-2">
+                                          <ThumbsDown className="w-4 h-4" /> Reject Claim
+                                        </Button>
+                                      </>
+                                    )}
+                                    {user?.adminType === 'security' && selectedClaim.status === 'Under Review' && (
+                                      <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Flagged')} variant="outline" className="flex-1 border-warning text-warning hover:bg-warning/10 h-12 text-sm font-bold gap-2">
+                                        <Flag className="w-4 h-4" /> Flag for Review
+                                      </Button>
+                                    )}
+                                    <Button variant="ghost" size="lg" onClick={() => setSelectedClaim(null)} className="px-6 h-12"><XCircle className="w-5 h-5 mr-2" /> Close Audit</Button>
+                                  </div>
+                                </motion.div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                {/* Verification Panel — expands when a claim row is clicked */}
-                {selectedClaim && (
-                  <motion.div
-                    key={selectedClaim.id}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 p-6 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-md space-y-6"
-                  >
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-bold text-foreground">Verification Panel</h3>
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border text-[10px] font-mono text-muted-foreground">
-                        <Fingerprint className="w-3 h-3" /> Claim #{selectedClaim.id}
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <DetailBlock label="FULL NAME" value={selectedClaim.worker_name} />
-                      <DetailBlock label="PLATFORM VERIFIED" value={selectedClaim.platform} />
-                      <DetailBlock label="CITY / ZONE MATCH" value={`${selectedClaim.city} ${selectedClaim.zone}`} />
-                      <DetailBlock label="HISTORICAL AVG" value={`₹${selectedClaim.payout_amount * 1.2}`} />
-                    </div>
-
-                    <div className="p-5 rounded-xl border border-primary/20 bg-primary/5 space-y-5 relative overflow-hidden">
-                      <div className="flex justify-between items-start relative z-10">
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-primary tracking-widest mb-1">AUTOMATED FRAUD SCORE</p>
-                          <div className="space-y-2 mt-4">
-                            <SuccessStep label="Weather/Platform Trigger Verified" />
-                            <SuccessStep label="GPS Location Consistency" status={selectedClaim.gps_match ? 'success' : 'warning'} />
-                            <SuccessStep label="Activity Pattern Match" status={selectedClaim.fraud_risk === 'High' ? 'danger' : 'success'} />
-                            <SuccessStep label="Device Integrity Check" />
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className={`text-4xl font-black font-mono leading-none ${selectedClaim.fraud_risk === 'High' ? 'text-destructive' : selectedClaim.fraud_risk === 'Medium' ? 'text-warning' : 'text-success'}`}>
-                            {selectedClaim.fraud_risk === 'High' ? '88' : selectedClaim.fraud_risk === 'Medium' ? '54' : '42'}/100
-                          </span>
-                        </div>
-                      </div>
-                      <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <Activity className="w-32 h-32 text-primary" />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-4">
-                      {user?.adminType === 'control' && selectedClaim.status === 'Under Review' && (
-                        <>
-                          <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Approved')} className="flex-1 bg-success hover:bg-success/90 h-12 text-sm font-bold gap-2">
-                            <ThumbsUp className="w-4 h-4" /> Approve Claim
-                          </Button>
-                          <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Rejected')} variant="outline" className="flex-1 border-destructive text-destructive hover:bg-destructive/10 h-12 text-sm font-bold gap-2">
-                            <ThumbsDown className="w-4 h-4" /> Reject Claim
-                          </Button>
-                        </>
-                      )}
-                      {user?.adminType === 'security' && selectedClaim.status === 'Under Review' && (
-                        <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Flagged')} variant="outline" className="flex-1 border-warning text-warning hover:bg-warning/10 h-12 text-sm font-bold gap-2">
-                          <Flag className="w-4 h-4" /> Flag for Review
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="lg" onClick={() => setSelectedClaim(null)} className="px-6 h-12"><XCircle className="w-5 h-5 mr-2" /> Close Audit</Button>
-                    </div>
-                  </motion.div>
-                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -542,7 +552,12 @@ function OverviewCard({ icon: Icon, label, value, color }: { icon: React.Element
         </div>
         <div>
           <p className="text-xs text-muted-foreground">{label}</p>
-          <p className={`text-xl font-mono font-bold ${color}`}>{value}</p>
+          <div className="flex justify-between items-center w-full">
+            <p className={`text-xl font-mono font-bold ${color}`}>{value}</p>
+            <div className="flex items-center gap-1 text-[8px] font-bold text-muted-foreground animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-success"></span> LIVE
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

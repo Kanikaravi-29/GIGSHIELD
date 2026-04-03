@@ -194,15 +194,18 @@ export default function WorkerDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-8 py-4 border-b border-border/30">
-        <div className="flex items-center gap-2">
-          <div className="gradient-primary p-1.5 rounded-lg">
-            <ShieldCheck className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-br from-primary to-blue-500 p-2 rounded-xl shadow-lg ring-1 ring-white/20">
+            <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            GigShield <span className="text-primary">Pro</span>
-          </h1>
-          <Badge variant="outline" className="ml-3 bg-card border-border text-success text-xs">
-            <Activity className="w-3 h-3 mr-1" /> Live
+          <div className="flex flex-col -space-y-1">
+            <h1 className="text-xl font-bold tracking-tighter text-foreground">
+              GigShield <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">Pro</span>
+            </h1>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Parametric AI Shield</span>
+          </div>
+          <Badge variant="outline" className="ml-2 bg-success/10 border-success/20 text-success text-[10px] h-5 px-1.5 flex items-center gap-1 font-bold">
+            <Activity className="w-2.5 h-2.5" /> LIVE
           </Badge>
         </div>
         <div className="flex items-center gap-3 mt-3 md:mt-0">
@@ -514,13 +517,22 @@ export default function WorkerDashboard() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <p className="text-[10px] text-muted-foreground uppercase">Current Status</p>
-                      <Badge variant="outline" className={`text-[10px] ${['Paid', 'Approved'].includes(demoClaims[0].status) ? 'border-success text-success' : 'border-warning text-warning'}`}>
-                        {['Paid', 'Approved'].includes(demoClaims[0].status) ? 'DB Approved' : 'Under Review'}
+                      <Badge variant="outline" className={`text-[10px] ${
+                        ['Paid', 'Approved'].includes(demoClaims[0].status) 
+                          ? 'border-success text-success' 
+                          : demoClaims[0].status === 'Rejected' 
+                            ? 'border-destructive text-destructive' 
+                            : 'border-warning text-warning'
+                      }`}>
+                        {['Paid', 'Approved'].includes(demoClaims[0].status) ? 'Approved' : demoClaims[0].status}
                       </Badge>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-muted-foreground uppercase">Trigger Reason</p>
-                      <p className="text-xs font-bold">{demoClaims[0].trigger_type} Event</p>
+                      <p className="text-xs font-bold capitalize">
+                        {demoClaims[0].trigger_type} Event 
+                        <span className="ml-1 text-[10px] text-primary/70 font-mono">({demoClaims[0].zone || 'N/A'})</span>
+                      </p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-muted-foreground uppercase">Estimated Payout</p>
@@ -609,7 +621,13 @@ export default function WorkerDashboard() {
                           <div className="flex items-center gap-2 mt-0.5">
                             <p className="text-[10px] text-muted-foreground">{new Date(claim.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                             <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
-                            <p className={`text-[10px] font-semibold px-1 rounded ${claim.status === 'Paid' || claim.status === 'Approved' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                            <p className={`text-[10px] font-semibold px-1 rounded ${
+                              ['Paid', 'Approved'].includes(claim.status) 
+                                ? 'bg-success/10 text-success' 
+                                : claim.status === 'Rejected' 
+                                  ? 'bg-destructive/10 text-destructive' 
+                                  : 'bg-warning/10 text-warning'
+                            }`}>
                               {claim.status}
                             </p>
                           </div>
@@ -638,8 +656,8 @@ function MetricCard({ label, value, color }: { label: string; value: string; col
       <CardContent className="p-5">
         <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
         <h3 className={`text-2xl font-mono font-bold ${color}`}>{value}</h3>
-        <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" /> Real-time
+        <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1 animate-pulse font-bold">
+          <TrendingUp className="w-3 h-3 text-primary" /> Multi-Source Live Feed
         </p>
       </CardContent>
     </Card>

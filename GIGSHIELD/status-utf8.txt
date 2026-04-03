@@ -1,0 +1,21 @@
+﻿On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   database.sqlite
+	modified:   index.html
+	modified:   server/index.ts
+	modified:   src/contexts/DemoContext.tsx
+	modified:   src/pages/AdminDashboard.tsx
+	modified:   src/pages/LoginPage.tsx
+	modified:   src/pages/RegisterPage.tsx
+	modified:   src/pages/WorkerDashboard.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	DOCUMENTATION.md
+	out-utf8.txt
+	out.txt
+	status-utf8.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
