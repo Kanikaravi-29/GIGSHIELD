@@ -636,11 +636,13 @@ const __dirname = path.dirname(__filename);
 const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
 
-// For SPA support: catch-all route to serve index.html for any frontend routes
-app.get('/:anypath*', (req, res, next) => {
-  // If the request starts with /api/, ignore it (it's for the backend routes)
-  if (req.url.startsWith('/api/')) return next();
-  res.sendFile(path.join(distPath, 'index.html'));
+// Final catch-all for SPA: serve index.html for any remaining GET requests
+// (Bypasses Express 5 regex engine to prevent PathErrors)
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.url.startsWith('/api/')) {
+    return res.sendFile(path.join(distPath, 'index.html'));
+  }
+  next();
 });
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
