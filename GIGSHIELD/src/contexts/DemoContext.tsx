@@ -56,7 +56,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const fetchUserPolicy = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/policy/user`, {
+      const res = await fetch(`/api/policy/user`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -74,7 +74,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const fetchUserClaims = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/claims/user`, {
+      const res = await fetch(`/api/claims/user`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -89,7 +89,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const fetchAllClaims = async () => {
     if (!token) return [];
     try {
-      const res = await fetch(`http://localhost:3001/api/claims`, {
+      const res = await fetch(`/api/claims`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -104,7 +104,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const activatePolicyAPI = async (packageType: string, coverageLevel: number, premium: number, selectedTriggers: TriggerType[], riskProbability: number) => {
     if (!token) return;
     try {
-      const res = await fetch('http://localhost:3001/api/policy/activate', {
+      const res = await fetch('/api/policy/activate', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const triggerDisruption = async (type: TriggerType, amount: number, workerName: string, zone?: string) => {
     if (!token) return;
     try {
-      const res = await fetch('http://localhost:3001/api/trigger', {
+      const res = await fetch('/api/trigger', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

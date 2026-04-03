@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CITIES, PLATFORMS, AGGREGATE_RISK_DATA } from '@/data/mockData';
 
-const API = 'http://localhost:3001';
+const API = '';
 
 export default function AdminDashboard() {
   const { token, user, logout } = useAuth();

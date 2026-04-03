@@ -55,7 +55,7 @@ export default function WorkerDashboard() {
   const fetchUserDashboard = async () => {
     if (!token) return;
     try {
-      const res = await fetch('http://localhost:3001/api/dashboard/user', {
+      const res = await fetch('/api/dashboard/user', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -70,7 +70,7 @@ export default function WorkerDashboard() {
   const fetchPolicyDetails = async () => {
     if (!token) return;
     try {
-      const res = await fetch('http://localhost:3001/api/policy/user', {
+      const res = await fetch('/api/policy/user', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {

@@ -34,7 +34,7 @@ export default function RegisterPage() {
         }
       }
       // 1. Sign Up
-      const signupRes = await fetch('http://localhost:3001/api/auth/signup', {
+      const signupRes = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -58,7 +58,7 @@ export default function RegisterPage() {
       }
 
       // 2. Auto Login to grab JWT and set context
-      const loginRes = await fetch('http://localhost:3001/api/auth/login', {
+      const loginRes = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, password: form.password })
