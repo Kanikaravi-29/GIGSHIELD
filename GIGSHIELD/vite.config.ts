@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => ({
     host: "0.0.0.0",
     port: 8080,
     allowedHosts: ["gigshield-iia9.onrender.com"],
+    proxy: {
+      '/api': 'http://localhost:3001',
+    },
     hmr: {
       overlay: false,
     },

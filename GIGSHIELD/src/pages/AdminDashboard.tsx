@@ -72,26 +72,8 @@ export default function AdminDashboard() {
 
       if (results.stats) setStats(results.stats);
       if (results.workers) {
-        const result = results.workers.map((w: any) => ({
-          id: w.id,
-          name: w.name,
-          email: w.email || 'N/A',
-          platform: w.platform || 'N/A',
-          platformId: w.platform_id || 'N/A',
-          platformRegistrationNumber: w.platform_registration_number || 'N/A',
-          city: w.city || 'N/A',
-          zone: w.zone || 'N/A',
-          dailyIncome: w.daily_income || 1400,
-          riskLevel: w.risk_probability > 0.7 ? 'High' : w.risk_probability > 0.4 ? 'Medium' : 'Low',
-          policyStatus: w.policy_status || 'Inactive',
-          latestClaimStatus: w.latest_claim_status || 'None',
-          fraudRisk: w.fraud_risk || 'Low',
-          gpsMatch: w.fraud_risk !== 'High',
-          zoneMatch: w.risk_probability < 0.7,
-          accountStatus: w.status,
-          userRole: w.role
-        }));
-        setWorkers(result);
+        // results.workers is already an array of users from the server
+        setWorkers(results.workers);
       }
       if (results.pending) setPendingUsers(results.pending);
       if (results.claims) setClaims(results.claims);
@@ -414,13 +396,13 @@ export default function AdminDashboard() {
                           <tr key={w.id} className="border-b border-border/50 transition-colors hover:bg-background">
                             <td className="py-2.5 font-semibold text-foreground">
                               {w.name} {user?.id === w.id && <span className="text-[10px] text-primary ml-1">(You)</span>}
-                              {w.userRole !== 'worker' ? (
-                                <Badge className="ml-2 text-[9px] font-bold border-none bg-primary/30 text-primary-foreground">
-                                  PLATFORM ADMIN
+                              {w.userRole === 'worker' ? (
+                                <Badge className="ml-2 text-[9px] font-bold border-none bg-muted text-muted-foreground uppercase">
+                                  Gig Partner
                                 </Badge>
                               ) : (
-                                <Badge className="ml-2 text-[9px] font-bold border-none bg-muted text-muted-foreground">
-                                  GIG PARTNER
+                                <Badge className="ml-2 text-[9px] font-bold border-none bg-primary/30 text-primary uppercase">
+                                  Platform Admin
                                 </Badge>
                               )}
                               <div className="text-[10px] text-muted-foreground font-normal font-mono">{w.platformId}</div>
