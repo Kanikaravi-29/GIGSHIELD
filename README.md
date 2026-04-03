@@ -14,6 +14,23 @@ Traditional insurance is often too slow, claim-heavy, and unsuitable for gig wor
 
 ---
 
+## Phase 2: End-to-End Demo Flow (Fully Functional)
+
+The GigShield platform demonstrates a complete working parametric insurance flow:
+
+1. User registers and logs in as a delivery partner  
+2. User activates a weekly insurance policy  
+3. Premium is calculated dynamically based on income, risk, and coverage  
+4. User simulates a disruption (Rain / Heat / Platform Down / Curfew)  
+5. System automatically triggers a claim  
+6. Claim is created instantly in the database  
+7. Worker dashboard updates with claim details  
+8. Admin dashboard reflects the same claim in real-time  
+
+This demonstrates a fully automated zero-touch insurance system with no manual claim filing.
+
+---
+
 ## Target Persona
 
 ### Example Persona: Ravi
@@ -37,9 +54,9 @@ GigShield provides weekly income protection for delivery workers using AI-driven
 - Instant payout simulation
 - Fraud detection dashboard
 - Hyper-local disruption monitoring
-- Predictive disruption alerts
-- GPS anti-spoofing verification
-
+- Predictive disruption alerts (mock-based in Phase 2)
+- Rule-based fraud detection (advanced AI & GPS validation in Phase 3)
+  
 ---
 
 ## Persona-Based Workflow
@@ -64,7 +81,7 @@ GigShield provides weekly income protection for delivery workers using AI-driven
    - If disruption thresholds are met, claim is triggered automatically
 
 7. **Claim Verification**
-   - The system verifies claim authenticity using disruption data, zone match, work activity, and GPS consistency checks
+   - The system performs basic verification using rule-based checks and disruption conditions (advanced GPS and AI validation in Phase 3)
 
 8. **Payout Processing**
    - Compensation is calculated and processed without manual claim filing for genuine claims
@@ -108,6 +125,24 @@ The system uses **parametric insurance**, which means payouts are based on measu
 
 ---
 
+### Phase 2 Implementation
+
+For Phase 2, triggers are simulated using predefined conditions:
+
+- Heavy Rain  
+- Heatwave  
+- Platform Outage  
+- Warehouse Disruption  
+- Curfew  
+
+Each trigger directly calls the backend API and automatically creates a claim if a policy is active.
+
+This ensures a reliable and seamless demo experience.
+
+All triggers are connected to backend APIs and persist data in the database, ensuring a complete working prototype instead of a UI-only simulation.
+
+---
+
 ## Platform Choice
 
 GigShield is designed as a **web platform**.
@@ -123,7 +158,7 @@ GigShield is designed as a **web platform**.
 
 ## AI / ML Integration
 
-AI is a major part of GigShield’s workflow.
+AI is planned as a major part of GigShield’s workflow. For Phase 2, the system uses simplified logic and mock data to demonstrate functionality.
 
 ### 1. Risk Score Model
 Risk Score = (weather risk + traffic risk + disruption frequency) / 3
@@ -155,6 +190,7 @@ The system can detect suspicious activities such as:
 ## Additional Fraud Defenses & Anti-Spoofing Strategy
 
 To make automated claims reliable and fair, GigShield includes an anti-fraud layer focused on delivery-specific abuse cases such as fake location-based claims and GPS spoofing.
+Note: For Phase 2, fraud detection is implemented using simple rule-based checks. Advanced AI-based fraud detection and GPS anti-spoofing will be implemented in Phase 3.
 
 ### Why this is needed
 In a parametric insurance model, payouts are triggered based on measurable disruption events. A bad actor could try to fake eligibility by spoofing their location and making it appear that they were working in a disruption-affected zone when they were not actually present there. GigShield addresses this by combining automated claim triggers with location and activity verification.
@@ -295,6 +331,23 @@ This makes GigShield not only a hackathon solution, but also a scalable insurtec
 - Mapbox
 - Mock Weather & Disruption APIs
 - JWT Authentication
+
+---
+
+## Data Persistence (Phase 2)
+
+All platform data is stored in a SQLite database:
+
+- User accounts  
+- Policies  
+- Claims  
+- Trigger events  
+
+Each user has isolated data, ensuring realistic behavior.
+
+All actions persist after refresh, proving full backend integration.
+
+This confirms that GigShield operates as a fully functional full-stack application with real-time data handling.
 
 ---
 
@@ -470,18 +523,33 @@ The complete platform will include the following major modules:
 - Worker Dashboard
 - Admin Analytics Dashboard
 
+---
+
 ## End Goal
 
 By the end of the six-week development cycle, GigShield will deliver a complete AI-powered parametric insurance workflow for gig delivery workers. The platform will demonstrate worker onboarding, weekly coverage generation, disruption monitoring, automated claim approval, fraud prevention, GPS anti-spoofing verification, and simulated instant payout in a practical and scalable manner.
+
+---
+
+## Phase 2 Completion Status
+
+✔ Registration & Authentication – Completed  
+✔ Policy Management System – Completed  
+✔ Dynamic Premium Calculation – Completed  
+✔ Automated Claim Trigger System – Completed  
+✔ Zero-Touch Claim Workflow – Completed  
+✔ SQLite Data Persistence – Completed  
+
+GigShield successfully demonstrates a complete working parametric insurance system for gig workers in Phase 2.
+
+---
 
 ## Repository Link
 
 [GIGSHIELD Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
 
+---
+
 ## Demo Video
 
 [Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)
-
-## PPT Link
-
-[PPT](https://www.canva.com/design/DAHD_yySh-4/C9xv1mjJspasOBrAfEFNhw/edit?utm_content=DAHD_yySh-4&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
