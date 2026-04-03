@@ -470,7 +470,7 @@ app.get('/api/admin/workers', authenticateToken, requireAdminType(['control', 'v
   try {
     const workers = await db.all(`
       SELECT 
-        u.id, u.name, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone, u.daily_income, u.status, u.role,
+        u.id, u.name, u.email, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone, u.daily_income, u.status, u.role,
         p.risk_probability,
         p.status as policy_status,
         c.status as latest_claim_status,

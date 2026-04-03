@@ -71,7 +71,28 @@ export default function AdminDashboard() {
       }
 
       if (results.stats) setStats(results.stats);
-      if (results.workers) setWorkers(results.workers);
+      if (results.workers) {
+        const result = results.workers.map((w: any) => ({
+          id: w.id,
+          name: w.name,
+          email: w.email || 'N/A',
+          platform: w.platform || 'N/A',
+          platformId: w.platform_id || 'N/A',
+          platformRegistrationNumber: w.platform_registration_number || 'N/A',
+          city: w.city || 'N/A',
+          zone: w.zone || 'N/A',
+          dailyIncome: w.daily_income || 1400,
+          riskLevel: w.risk_probability > 0.7 ? 'High' : w.risk_probability > 0.4 ? 'Medium' : 'Low',
+          policyStatus: w.policy_status || 'Inactive',
+          latestClaimStatus: w.latest_claim_status || 'None',
+          fraudRisk: w.fraud_risk || 'Low',
+          gpsMatch: w.fraud_risk !== 'High',
+          zoneMatch: w.risk_probability < 0.7,
+          accountStatus: w.status,
+          userRole: w.role
+        }));
+        setWorkers(result);
+      }
       if (results.pending) setPendingUsers(results.pending);
       if (results.claims) setClaims(results.claims);
       if (results.fraud) setFraudStats(results.fraud);
@@ -129,8 +150,12 @@ export default function AdminDashboard() {
     }
   };
 
+
   const filteredWorkers = workers.filter(w => {
+    // City Filter
     if (cityFilter !== 'all' && w.city !== cityFilter) return false;
+
+    // Platform/Role Filter
     if (platformFilter !== 'all') {
       if (['Amazon', 'Flipkart'].includes(platformFilter)) {
         if (w.platform !== platformFilter) return false;
@@ -138,7 +163,16 @@ export default function AdminDashboard() {
         if (w.userRole !== 'admin' && w.userRole !== 'provider') return false;
       }
     }
-    if (searchQuery && !w.name.toLowerCase().includes(searchQuery.toLowerCase()) && !w.email.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+
+    // Search Query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const nameMatch = w.name?.toLowerCase().includes(q);
+      const emailMatch = w.email?.toLowerCase().includes(q);
+      const idMatch = w.platformId?.toLowerCase().includes(q);
+      if (!nameMatch && !emailMatch && !idMatch) return false;
+    }
+    
     return true;
   }).sort((a, b) => {
     // Sort logic: Platform Admins first, then Gig Workers
