@@ -1,6 +1,6 @@
 ## Repository Link
 
-[GIGSHIELD Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
+[GIGSHIELD PRO Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
 
 ---
 
@@ -24,9 +24,9 @@ Password : admin123
 
 ---
 
-# GigShield: AI-Powered Parametric Insurance for Gig Workers
+# GigShield Pro: AI-Powered Parametric Insurance for Gig Workers
 
-GigShield is an AI-powered parametric insurance platform designed to protect delivery workers in India’s gig economy from income loss caused by external disruptions such as heavy rain, extreme heat, curfews, warehouse outages, and delivery platform failures.
+GigShield Pro is an AI-powered parametric insurance platform designed to protect delivery workers in India’s gig economy from income loss caused by external disruptions such as heavy rain, extreme heat, curfews, warehouse outages, and delivery platform failures.
 
 This project focuses on building a smart, transparent, and automated insurance system where workers receive weekly coverage and payouts are triggered automatically when predefined disruption conditions are met.
 
@@ -36,13 +36,13 @@ This project focuses on building a smart, transparent, and automated insurance s
 
 Delivery workers from platforms like Amazon and Flipkart earn based on successful deliveries. When disruptions such as bad weather, heatwaves, city restrictions, or platform outages occur, they lose working hours and daily income.
 
-Traditional insurance is often too slow, claim-heavy, and unsuitable for gig workers who need fast and flexible support. GigShield solves this through a parametric insurance model that provides automatic compensation based on real-world trigger conditions.
+Traditional insurance is often too slow, claim-heavy, and unsuitable for gig workers who need fast and flexible support. GigShield Pro solves this through a parametric insurance model that provides automatic compensation based on real-world trigger conditions.
 
 ---
 
 ## Phase 2: End-to-End Demo Flow (Fully Functional)
 
-The GigShield platform demonstrates a complete working parametric insurance flow:
+The GigShield Pro platform demonstrates a complete working parametric insurance flow:
 
 1. User registers and logs in as a delivery partner  
 2. User activates a weekly insurance policy  
@@ -65,13 +65,13 @@ This demonstrates a fully automated zero-touch insurance system with no manual c
 - **Average Daily Income:** ₹1400
 
 ### Scenario
-Ravi depends on daily deliveries for his earnings. If heavy rain or a platform outage happens, he completes fewer deliveries and loses income. GigShield protects his weekly earnings through parametric insurance coverage that activates automatically during such disruptions.
+Ravi depends on daily deliveries for his earnings. If heavy rain or a platform outage happens, he completes fewer deliveries and loses income. GigShield Pro protects his weekly earnings through parametric insurance coverage that activates automatically during such disruptions.
 
 ---
 
 ## Core Strategy
 
-GigShield provides weekly income protection for delivery workers using AI-driven risk analysis, automated parametric claims, and intelligent fraud-aware verification.
+GigShield Pro provides weekly income protection for delivery workers using AI-driven risk analysis, automated parametric claims, and intelligent fraud-aware verification.
 
 ### Key Features
 - AI-based risk scoring
@@ -116,7 +116,7 @@ GigShield provides weekly income protection for delivery workers using AI-driven
 
 ## Weekly Premium Model
 
-GigShield uses a **weekly premium model** because gig workers earn on a short-cycle basis and face changing risks every week.
+GigShield Pro uses a **weekly premium model** because gig workers earn on a short-cycle basis and face changing risks every week.
 
 ### Premium depends on:
 - Average worker income
@@ -171,7 +171,7 @@ All triggers are connected to backend APIs and persist data in the database, ens
 
 ## Platform Choice
 
-GigShield is designed as a **web platform**.
+GigShield Pro is designed as a **web platform**.
 
 ### Why web?
 - Easy access on both desktop and mobile browsers
@@ -184,7 +184,7 @@ GigShield is designed as a **web platform**.
 
 ## AI / ML Integration
 
-AI is planned as a major part of GigShield’s workflow. For Phase 2, the system uses simplified logic and mock data to demonstrate functionality.
+AI is planned as a major part of GigShield Pro’s workflow. For Phase 2, the system uses simplified logic and mock data to demonstrate functionality.
 
 ### 1. Risk Score Model
 Risk Score = (weather risk + traffic risk + disruption frequency) / 3
@@ -215,14 +215,14 @@ The system can detect suspicious activities such as:
 
 ## Additional Fraud Defenses & Anti-Spoofing Strategy
 
-To make automated claims reliable and fair, GigShield includes an anti-fraud layer focused on delivery-specific abuse cases such as fake location-based claims and GPS spoofing.
+To make automated claims reliable and fair, GigShield Pro includes an anti-fraud layer focused on delivery-specific abuse cases such as fake location-based claims and GPS spoofing.
 Note: For Phase 2, fraud detection is implemented using simple rule-based checks. Advanced AI-based fraud detection and GPS anti-spoofing will be implemented in Phase 3.
 
 ### Why this is needed
-In a parametric insurance model, payouts are triggered based on measurable disruption events. A bad actor could try to fake eligibility by spoofing their location and making it appear that they were working in a disruption-affected zone when they were not actually present there. GigShield addresses this by combining automated claim triggers with location and activity verification.
+In a parametric insurance model, payouts are triggered based on measurable disruption events. A bad actor could try to fake eligibility by spoofing their location and making it appear that they were working in a disruption-affected zone when they were not actually present there. GigShield Pro addresses this by combining automated claim triggers with location and activity verification.
 
 ### Detecting genuine delivery patterns vs spoofed behavior
-GigShield uses rule-based checks and AI-assisted anomaly detection to separate normal worker behavior from suspicious claim activity.
+GigShield Pro uses rule-based checks and AI-assisted anomaly detection to separate normal worker behavior from suspicious claim activity.
 
 #### Genuine delivery behavior typically shows:
 - Continuous route movement across nearby streets or delivery clusters
@@ -258,7 +258,7 @@ The fraud verification layer can use the following inputs:
 AI/ML helps the platform learn patterns of normal delivery activity and identify anomalies. Instead of checking only a single location point, the system can analyze route continuity, timing consistency, delivery activity patterns, and claim behavior over time. This makes fraud detection more intelligent and reduces dependence on a single signal.
 
 ### UX balance: protecting the system without hurting genuine workers
-GigShield is designed to keep the worker experience smooth while still protecting the insurer from abuse.
+GigShield Pro is designed to keep the worker experience smooth while still protecting the insurer from abuse.
 
 #### Decision logic:
 - **Low-risk claims** are auto-approved
@@ -278,7 +278,7 @@ This approach ensures that fraud detection strengthens trust without making the 
 
 ## Innovation & Novelty
 
-GigShield introduces a modern insurance approach for gig workers through:
+GigShield Pro introduces a modern insurance approach for gig workers through:
 
 - **Hyper-local risk assessment**
 - **Predictive disruption alerts**
@@ -293,7 +293,7 @@ This makes insurance more practical, faster, safer, and worker-friendly.
 
 ## Market Opportunity
 
-GigShield addresses a growing gap in India’s rapidly expanding gig economy, where delivery workers face frequent income instability due to weather disruptions, platform outages, and urban operational risks.
+GigShield Pro addresses a growing gap in India’s rapidly expanding gig economy, where delivery workers face frequent income instability due to weather disruptions, platform outages, and urban operational risks.
 
 ### Target Market
 The platform is designed for:
@@ -305,7 +305,7 @@ The platform is designed for:
 ### Why the Market Matters
 India’s gig workforce is growing quickly, but most workers still lack flexible income protection tailored to short-term, disruption-based losses. Traditional insurance products are often not designed for weekly wage uncertainty, location-based risk, or instant automated claims.
 
-GigShield solves this by introducing a **weekly parametric insurance model** that is:
+GigShield Pro solves this by introducing a **weekly parametric insurance model** that is:
 - affordable
 - flexible
 - hyper-local
@@ -321,7 +321,7 @@ There is a clear need for:
 - insurer-friendly risk monitoring tools
 
 ### Business Relevance
-GigShield creates value for both sides:
+GigShield Pro creates value for both sides:
 - **Workers** get fast, transparent protection for lost wages
 - **Insurers** get a scalable, rules-based, fraud-aware insurance workflow
 - **Platforms and employers** can potentially use it as a workforce safety and retention benefit
@@ -333,7 +333,7 @@ The model can later expand beyond delivery workers to:
 - freelance field agents
 - other informal workers affected by location-based disruptions
 
-This makes GigShield not only a hackathon solution, but also a scalable insurtech concept with real market relevance.
+This makes GigShield Pro not only a hackathon solution, but also a scalable insurtech concept with real market relevance.
 
 ---
 
@@ -373,13 +373,13 @@ Each user has isolated data, ensuring realistic behavior.
 
 All actions persist after refresh, proving full backend integration.
 
-This confirms that GigShield operates as a fully functional full-stack application with real-time data handling.
+This confirms that GigShield Pro operates as a fully functional full-stack application with real-time data handling.
 
 ---
 
 ## Development Plan
 
-GigShield will be developed in three structured phases across six weeks, moving from idea validation to automation and finally to optimization and scale. The goal is to build a complete AI-powered parametric insurance platform that protects gig delivery workers from income loss through dynamic pricing, automated triggers, seamless claims, fraud detection, and instant payout simulation.
+GigShield Pro will be developed in three structured phases across six weeks, moving from idea validation to automation and finally to optimization and scale. The goal is to build a complete AI-powered parametric insurance platform that protects gig delivery workers from income loss through dynamic pricing, automated triggers, seamless claims, fraud detection, and instant payout simulation.
 
 ### Phase 1: Ideation & Foundation (March 4 – March 20)
 **Theme:** *Ideate & Know Your Delivery Worker*
@@ -553,7 +553,7 @@ The complete platform will include the following major modules:
 
 ## End Goal
 
-By the end of the six-week development cycle, GigShield will deliver a complete AI-powered parametric insurance workflow for gig delivery workers. The platform will demonstrate worker onboarding, weekly coverage generation, disruption monitoring, automated claim approval, fraud prevention, GPS anti-spoofing verification, and simulated instant payout in a practical and scalable manner.
+By the end of the six-week development cycle, GigShield Pro will deliver a complete AI-powered parametric insurance workflow for gig delivery workers. The platform will demonstrate worker onboarding, weekly coverage generation, disruption monitoring, automated claim approval, fraud prevention, GPS anti-spoofing verification, and simulated instant payout in a practical and scalable manner.
 
 ---
 
@@ -566,7 +566,7 @@ By the end of the six-week development cycle, GigShield will deliver a complete 
 ✔ Zero-Touch Claim Workflow – Completed  
 ✔ SQLite Data Persistence – Completed  
 
-GigShield successfully demonstrates a complete working parametric insurance system for gig workers in Phase 2.
+GigShield Pro successfully demonstrates a complete working parametric insurance system for gig workers in Phase 2.
 
 ---
 
