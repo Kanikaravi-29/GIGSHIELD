@@ -6,13 +6,20 @@
 
 ## Demo Video
 
-[Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)
+[Demo Video](https://www.youtube.com/watch?v=YV9iEpWCeXw)
 
 ---
 
 ## Try It Out Link
 
 [Try It Out](https://gigshield-iia9.onrender.com)
+
+---
+
+## Demo Credentials For Admin
+
+Mail : admin@gigshield.com
+password : admin123
 
 ---
 
