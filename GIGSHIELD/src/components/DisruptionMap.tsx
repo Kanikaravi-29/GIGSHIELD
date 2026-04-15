@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import L from 'leaflet';
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface Props {
@@ -22,33 +22,38 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
 
 const CITY_ZONES: Record<string, { name: string; id: string; lat: number; lng: number; baseRisk: string }[]> = {
   'Chennai': [
-    { name: 'T. Nagar', id: 'A4', lat: 13.04, lng: 80.23, baseRisk: 'low' },
-    { name: 'Adyar', id: 'A2', lat: 13.00, lng: 80.26, baseRisk: 'low' },
-    { name: 'Anna Nagar', id: 'B1', lat: 13.09, lng: 80.21, baseRisk: 'medium' },
-    { name: 'Tambaram', id: 'C3', lat: 12.92, lng: 80.13, baseRisk: 'low' },
-    { name: 'Velachery', id: 'D1', lat: 12.98, lng: 80.22, baseRisk: 'high' },
-    { name: 'Guindy', id: 'E2', lat: 13.01, lng: 80.21, baseRisk: 'medium' },
+    { name: 'Zone A1', id: 'A1', lat: 13.06, lng: 80.24, baseRisk: 'low' },
+    { name: 'Zone A2', id: 'A2', lat: 13.00, lng: 80.26, baseRisk: 'low' },
+    { name: 'Zone A3', id: 'A3', lat: 13.04, lng: 80.25, baseRisk: 'medium' },
+    { name: 'Zone A4', id: 'A4', lat: 13.04, lng: 80.23, baseRisk: 'low' },
+    { name: 'Zone B1', id: 'B1', lat: 13.09, lng: 80.21, baseRisk: 'medium' },
+    { name: 'Zone B2', id: 'B2', lat: 13.08, lng: 80.22, baseRisk: 'high' },
+    { name: 'Zone B3', id: 'B3', lat: 13.07, lng: 80.23, baseRisk: 'medium' },
+    { name: 'Zone B4', id: 'B4', lat: 13.09, lng: 80.24, baseRisk: 'low' },
+    { name: 'Zone C1', id: 'C1', lat: 12.92, lng: 80.13, baseRisk: 'low' },
+    { name: 'Zone C2', id: 'C2', lat: 12.95, lng: 80.15, baseRisk: 'medium' },
   ],
   'Coimbatore': [
-    { name: 'RS Puram', id: 'RS1', lat: 11.01, lng: 76.94, baseRisk: 'low' },
-    { name: 'Gandhipuram', id: 'GP1', lat: 11.02, lng: 76.97, baseRisk: 'high' },
-    { name: 'Peelamedu', id: 'PM1', lat: 11.03, lng: 77.01, baseRisk: 'medium' },
-    { name: 'Singanallur', id: 'SN1', lat: 11.00, lng: 77.03, baseRisk: 'low' },
+    { name: 'Zone A1', id: 'A1', lat: 11.01, lng: 76.94, baseRisk: 'low' },
+    { name: 'Zone A2', id: 'A2', lat: 11.02, lng: 76.97, baseRisk: 'high' },
+    { name: 'Zone B1', id: 'B1', lat: 11.03, lng: 77.01, baseRisk: 'medium' },
+    { name: 'Zone B2', id: 'B2', lat: 11.00, lng: 77.03, baseRisk: 'low' },
+    { name: 'Zone C1', id: 'C1', lat: 11.04, lng: 76.95, baseRisk: 'medium' },
   ],
   'Tirupur': [
-    { name: 'Rayapuram', id: 'RP1', lat: 11.11, lng: 77.33, baseRisk: 'high' },
-    { name: 'Avinashi Road', id: 'AR1', lat: 11.12, lng: 77.35, baseRisk: 'medium' },
-    { name: 'Kumar Nagar', id: 'KN1', lat: 11.10, lng: 77.36, baseRisk: 'low' },
-    { name: 'Thennampalayam', id: 'TP1', lat: 11.08, lng: 77.34, baseRisk: 'medium' },
+    { name: 'Zone A1', id: 'A1', lat: 11.11, lng: 77.33, baseRisk: 'high' },
+    { name: 'Zone A2', id: 'A2', lat: 11.12, lng: 77.35, baseRisk: 'medium' },
+    { name: 'Zone B1', id: 'B1', lat: 11.10, lng: 77.36, baseRisk: 'low' },
+    { name: 'Zone B2', id: 'B2', lat: 11.08, lng: 77.34, baseRisk: 'medium' },
+    { name: 'Zone C1', id: 'C1', lat: 11.13, lng: 77.32, baseRisk: 'low' },
   ],
 };
 
 function getRiskLevel(baseRisk: string, triggers: string[]): 'low' | 'medium' | 'high' {
   if (triggers.includes('curfew')) return 'high';
-  if (triggers.length >= 3) return 'high';
-  if (triggers.length >= 2 || triggers.includes('outage')) return baseRisk === 'high' ? 'high' : 'medium';
-  if (triggers.length >= 1) return baseRisk === 'low' ? 'medium' : baseRisk as any;
-  return baseRisk as any;
+  if (triggers.includes('rain') && triggers.includes('outage')) return 'high';
+  if (triggers.includes('rain') || triggers.includes('outage') || triggers.includes('heat')) return 'medium';
+  return baseRisk as 'low' | 'medium' | 'high';
 }
 
 const RISK_COLORS = {
@@ -121,7 +126,7 @@ export default function DisruptionMap({ activeTriggers, city = 'Chennai', select
       }).addTo(map);
 
       circle.bindPopup(`
-        <div style="font-size:12px;color:#0f172a">
+        <div class="text-sm font-sans">
           <strong>${zone.name}</strong> [${zone.id}]<br/>
           Risk: <span style="color:${color};font-weight:bold">${risk.toUpperCase()}</span>
         </div>
@@ -148,4 +153,3 @@ export default function DisruptionMap({ activeTriggers, city = 'Chennai', select
     </div>
   );
 }
-

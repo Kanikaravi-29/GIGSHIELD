@@ -1,88 +1,40 @@
-/**
- * GPS Validator Module (Phase 3 AI/ML Anti-Spoofing Integration)
- * 
- * This module simulates a machine learning model that detects GPS spoofing
- * and unrealistic location jumps (teleportation) in gig worker delivery routes.
- */
-
-// Helper to calculate distance between two coordinates in km (Haversine formula)
-const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = 
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-};
-
 export interface LocationPoint {
     lat: number;
     lng: number;
-    timestamp: string; // ISO string
+    timestamp: number;
 }
 
-export interface GPSAnalysisResult {
-    isSpoofed: boolean;
-    fraudRisk: string;
-    confidenceScore: number;
-    anomalyDetails: string[];
-}
+export const analyzeGPSContinuity = (history: LocationPoint[]) => {
+    if (!history || history.length < 2) return { isSpoofed: false };
 
-export const analyzeGPSContinuity = (locationHistory: LocationPoint[]): GPSAnalysisResult => {
-    // If no history, we can't verify GPS integrity, so we flag it as Medium Risk
-    if (!locationHistory || locationHistory.length < 2) {
-        return {
-            isSpoofed: false,
-            fraudRisk: 'Medium', // Lack of data is suspicious but not proof of spoofing
-            confidenceScore: 0.5,
-            anomalyDetails: ['Insufficient location history for ML analysis']
-        };
-    }
-
+    const R = 6371e3; // Earth radius in meters
     let isSpoofed = false;
-    let anomalies: string[] = [];
-    let maxSpeed = 0;
+    let anomalyDetails = '';
 
-    for (let i = 1; i < locationHistory.length; i++) {
-        const p1 = locationHistory[i - 1];
-        const p2 = locationHistory[i];
+    for (let i = 1; i < history.length; i++) {
+        const p1 = history[i - 1];
+        const p2 = history[i];
 
-        const distKm = getDistance(p1.lat, p1.lng, p2.lat, p2.lng);
-        const timeDiffMs = new Date(p2.timestamp).getTime() - new Date(p1.timestamp).getTime();
-        const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+        const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+        const dLng = (p2.lng - p1.lng) * Math.PI / 180;
 
-        // Calculate speed (km/h)
-        const speedKph = timeDiffHours > 0 ? distKm / timeDiffHours : 0;
-        
-        if (speedKph > maxSpeed) {
-            maxSpeed = speedKph;
-        }
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
 
-        // Rule 1: Impossible Speed (Teleportation)
-        // A delivery worker travelling over 120 km/h in a city is highly anomalous
-        if (speedKph > 120) {
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c; // meters
+
+        const timeDiffSecs = (p2.timestamp - p1.timestamp) / 1000;
+        const speedKmph = (distance / timeDiffSecs) * 3.6;
+
+        // If moving faster than 150 km/h, flag as teleportation/spoofed
+        if (speedKmph > 150) {
             isSpoofed = true;
-            anomalies.push(`Anomaly: Unrealistic travel speed detected (${Math.round(speedKph)} km/h)`);
-        }
-
-        // Rule 2: Sudden large distance jumps
-        // Jumping more than 50km between two adjacent pings in a delivery session is unnatural
-        if (distKm > 50) {
-            isSpoofed = true;
-            anomalies.push(`Anomaly: Sudden location jump of ${Math.round(distKm)} km detected`);
+            anomalyDetails = `Impossible speed detected: ${Math.round(speedKmph)} km/h`;
+            break;
         }
     }
 
-    const confidenceScore = isSpoofed ? 0.98 : 0.85; // High confidence if spoofing detected
-    const fraudRisk = isSpoofed ? 'High' : 'Low';
-
-    return {
-        isSpoofed,
-        fraudRisk,
-        confidenceScore,
-        anomalyDetails: anomalies.length > 0 ? anomalies : ['No anomalies detected. Travel route is continuous.']
-    };
+    return { isSpoofed, anomalyDetails };
 };

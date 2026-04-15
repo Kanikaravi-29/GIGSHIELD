@@ -249,12 +249,7 @@ export default function WorkerDashboard() {
               }}
               className="bg-transparent text-[10px] font-bold outline-none border-none cursor-pointer text-foreground"
             >
-              {(user?.city === 'Tirupur' 
-                ? ['RP1', 'AR1', 'KN1', 'TP1'] 
-                : user?.city === 'Coimbatore' 
-                  ? ['RS1', 'GP1', 'PM1', 'SN1'] 
-                  : ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2', 'D1', 'E2']
-              ).map(z => (
+              {['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2'].map(z => (
                 <option key={z} value={z} className="bg-background text-foreground">Zone {z}</option>
               ))}
             </select>
@@ -651,29 +646,63 @@ export default function WorkerDashboard() {
                 <CardContent>
                   <div className="space-y-3">
                     {demoClaims.length > 0 ? demoClaims.map((claim, i) => (
-                      <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background border border-border">
-                        <div>
-                          <p className="text-xs font-bold text-foreground capitalize">
-                            {claim.trigger_type} Event
-                            {claim.zone && <span className="ml-1 text-[10px] text-primary/70 font-mono">({claim.zone})</span>}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-[10px] text-muted-foreground">{new Date(claim.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
-                            <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
-                            <p className={`text-[10px] font-semibold px-1 rounded ${
-                              ['Paid', 'Approved'].includes(claim.status) 
-                                ? 'bg-success/10 text-success' 
-                                : claim.status === 'Rejected' 
-                                  ? 'bg-destructive/10 text-destructive' 
-                                  : 'bg-warning/10 text-warning'
-                            }`}>
-                              {claim.status}
+                      <div key={i} className="flex flex-col p-3 rounded-lg bg-background border border-border">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-xs font-bold text-foreground capitalize">
+                              {claim.trigger_type} Event
+                              {claim.zone && <span className="ml-1 text-[10px] text-primary/70 font-mono">({claim.zone})</span>}
                             </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-[10px] text-muted-foreground">{new Date(claim.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                              <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
+                              <p className={`text-[10px] font-semibold px-1 py-0.5 rounded ${
+                                ['Paid', 'Approved'].includes(claim.status) 
+                                  ? 'bg-success/10 text-success' 
+                                  : claim.status === 'Rejected' 
+                                    ? 'bg-destructive/10 text-destructive' 
+                                    : 'bg-warning/10 text-warning'
+                              }`}>
+                                {claim.status}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-mono font-bold text-foreground">₹{claim.payout_amount}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs font-mono font-bold text-foreground">₹{claim.payout_amount}</p>
-                        </div>
+
+                        {/* --- SIMULATED RAZORPAY / INSTANT PAYOUT INJECTION --- */}
+                        {claim.status === 'Approved' && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <Button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/claims/${claim.id}/payout`, {
+                                    method: 'POST',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  const data = await res.json();
+                                  if (res.ok) {
+                                    toast.success("Payment Successful via Razorpay", {
+                                      description: `₹${data.payout_amount} transferred instantly. Txn: ${data.transaction_id}`,
+                                      icon: <ShieldCheck className="w-4 h-4 text-success" />
+                                    });
+                                    fetchUserClaims(); 
+                                  } else {
+                                    toast.error(data.error);
+                                  }
+                                } catch (err) {
+                                  toast.error("Payment integration failed.");
+                                }
+                              }}
+                              className="w-full text-xs font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform animate-pulse"
+                            >
+                              <Zap className="w-4 h-4 mr-2" /> Receive Instant Payout via UPI
+                            </Button>
+                          </div>
+                        )}
+                        {/* -------------------------------------------------- */}
                       </div>
                     )) : (
                       <div className="text-center py-6 text-muted-foreground text-[10px]">No claim history found.</div>

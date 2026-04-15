@@ -4,9 +4,11 @@ import { initDB, getDB } from './db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { analyzeGPSContinuity, LocationPoint } from './ml/gpsValidator.js';
 
 dotenv.config();
+
+import { analyzeGPSContinuity, LocationPoint } from './ml/gpsValidator.js';
+import { calculateClaimFraudScore, getRiskLabel } from './ml/fraudScorer.js';
 
 dotenv.config();
 
@@ -297,7 +299,6 @@ app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
         }
         // ------------------------------------
 
-
         const claimRes = await db.run(`
           INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, zone)
           VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -388,6 +389,34 @@ app.get('/api/claims', authenticateToken, async (req: any, res: any) => {
       ORDER BY c.created_at DESC
     `);
     res.json(claims);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/claims/:id/payout', authenticateToken, async (req: any, res: any) => {
+  const db = await getDB();
+  try {
+    const claim = await db.get('SELECT * FROM claims WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    if (!claim) return res.status(404).json({ error: 'Claim not found or access denied.' });
+
+    if (claim.status !== 'Approved') {
+      return res.status(400).json({ error: 'Only approved claims can be paid out.' });
+    }
+
+    // Simulate Payment Gateway Delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    await db.run(`UPDATE claims SET status = 'Paid', updated_at = datetime('now') WHERE id = ?`, [req.params.id]);
+    
+    res.json({
+      success: true,
+      transaction_id: `rzp_test_${Math.random().toString(36).substr(2, 9)}`,
+      payout_amount: claim.payout_amount,
+      status: 'Paid',
+      message: 'Instant payout processed successfully.'
+    });
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message });
