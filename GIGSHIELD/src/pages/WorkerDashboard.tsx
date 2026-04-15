@@ -51,6 +51,7 @@ export default function WorkerDashboard() {
   const [activePolicy, setActivePolicy] = useState<any>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const [currentZone, setCurrentZone] = useState(user?.zone || 'A4');
+  const [simulateSpoofedGPS, setSimulateSpoofedGPS] = useState(false);
 
   const fetchUserDashboard = async () => {
     if (!token) return;
@@ -164,12 +165,38 @@ export default function WorkerDashboard() {
     });
   }, [demoClaims, dailyIncome]);
 
+  const generateMockLocationHistory = (isSpoofed: boolean) => {
+    // Generate an array of 3 timestamped coordinates
+    const now = new Date();
+    // Genuine route: points are within a few hundred meters, traversed over 15 minutes
+    // Spoofed route: jumped 200km instantly
+    
+    // Chennai coordinates roughly
+    const baseLat = 13.0827; 
+    const baseLng = 80.2707;
+
+    if (isSpoofed) {
+      return [
+        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString() },
+        { lat: baseLat + 2, lng: baseLng + 2, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString() }, // Jumped hundreds of km in 10 mins
+        { lat: baseLat + 2.5, lng: baseLng + 2.5, timestamp: now.toISOString() }
+      ];
+    } else {
+      return [
+        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString() },
+        { lat: baseLat + 0.001, lng: baseLng + 0.001, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString() },
+        { lat: baseLat + 0.002, lng: baseLng + 0.002, timestamp: now.toISOString() }
+      ];
+    }
+  };
+
   const triggerEvent = async (type: TriggerType) => {
     if (!isPolicyActive) {
       toast.error("Shield Inactive", { description: "Please activate your policy first to qualify for claims." });
       return;
     }
-    await triggerDisruption(type, Number(potentialPayout), user?.name || 'Worker', currentZone);
+    const mockLocationHistory = generateMockLocationHistory(simulateSpoofedGPS);
+    await triggerDisruption(type, Number(potentialPayout), user?.name || 'Worker', currentZone, mockLocationHistory);
     
     // Explicit sync with DB after simulation
     await fetchUserPolicy();
@@ -222,8 +249,13 @@ export default function WorkerDashboard() {
               }}
               className="bg-transparent text-[10px] font-bold outline-none border-none cursor-pointer text-foreground"
             >
-              {['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2'].map(z => (
-                <option key={z} value={z} className="bg-background text-foreground">{z}</option>
+              {(user?.city === 'Tirupur' 
+                ? ['RP1', 'AR1', 'KN1', 'TP1'] 
+                : user?.city === 'Coimbatore' 
+                  ? ['RS1', 'GP1', 'PM1', 'SN1'] 
+                  : ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2', 'D1', 'E2']
+              ).map(z => (
+                <option key={z} value={z} className="bg-background text-foreground">Zone {z}</option>
               ))}
             </select>
           </div>
@@ -431,6 +463,13 @@ export default function WorkerDashboard() {
                       <MapPin className="w-3 h-3 mr-1" /> Zone Curfew
                     </Button>
                   </div>
+                  <div className="mt-4 pt-3 border-t border-primary-foreground/20 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/70">Simulate GPS Spoofing</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={simulateSpoofedGPS} onChange={() => setSimulateSpoofedGPS(!simulateSpoofedGPS)} />
+                      <div className="w-9 h-5 bg-background border border-primary-foreground/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-destructive"></div>
+                    </label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -599,7 +638,7 @@ export default function WorkerDashboard() {
                   <CardTitle className="text-sm font-medium text-foreground">Disruption Heatmap</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DisruptionMap activeTriggers={activeTriggers} />
+                  <DisruptionMap activeTriggers={activeTriggers} city={user?.city} selectedZone={currentZone} />
                 </CardContent>
               </Card>
             </motion.div>

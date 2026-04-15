@@ -4,6 +4,7 @@ import { initDB, getDB } from './db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { analyzeGPSContinuity, LocationPoint } from './ml/gpsValidator.js';
 
 dotenv.config();
 
@@ -226,7 +227,7 @@ app.get('/api/policy/user', authenticateToken, async (req: any, res: any) => {
 });
 
 app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
-  const { trigger_type, zone } = req.body;
+  const { trigger_type, zone, locationHistory } = req.body;
   const db = await getDB();
   try {
     const userId = req.user.id;
@@ -278,21 +279,29 @@ app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
         let fraudRisk = 'Low';
         let claimStatus = 'Approved';
 
+        // 3. GPS Anti-Spoofing ML Validation
+        const gpsAnalysis = analyzeGPSContinuity(locationHistory || []);
+        const gpsMatch = gpsAnalysis.isSpoofed ? 0 : 1;
+
         if (recentClaims.count >= 10) {
           // Rule: More than 10 claims in 24 hours is High Risk (velocity check)
           fraudRisk = 'High';
           claimStatus = 'Under Review';
-        } else if (incomeRatio > 1.5) {
-          // Rule: Payout significantly exceeding daily income is Medium Risk
-          fraudRisk = 'Medium';
+        }
+
+        // ML Override
+        if (gpsAnalysis.isSpoofed) {
+          fraudRisk = 'High';
           claimStatus = 'Under Review';
+          console.warn('🚨 GPS Spoofing Detected for user', userId, gpsAnalysis.anomalyDetails);
         }
         // ------------------------------------
 
+
         const claimRes = await db.run(`
           INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, zone)
-          VALUES (?, ?, ?, ?, 1, ?, ?)
-        `, [userId, trigger_type, payout, claimStatus, fraudRisk, zone]);
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [userId, trigger_type, payout, claimStatus, gpsMatch, fraudRisk, zone]);
 
         newClaim = await db.get(`
           SELECT c.*, u.platform_id 

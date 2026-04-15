@@ -25,7 +25,7 @@ interface DemoContextType {
   demoClaims: Claim[];
   setDemoClaims: React.Dispatch<React.SetStateAction<Claim[]>>;
   activatePolicyAPI: (packageType: string, coverageLevel: number, premium: number, selectedTriggers: TriggerType[], riskProbability: number) => Promise<void>;
-  triggerDisruption: (type: TriggerType, amount: number, workerName: string, zone?: string) => Promise<void>;
+  triggerDisruption: (type: TriggerType, amount: number, workerName: string, zone?: string, locationHistory?: any[]) => Promise<void>;
   fetchUserClaims: () => Promise<void>;
   fetchAllClaims: () => Promise<Claim[]>;
   fetchUserPolicy: () => Promise<void>;
@@ -131,7 +131,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const triggerDisruption = async (type: TriggerType, amount: number, workerName: string, zone?: string) => {
+  const triggerDisruption = async (type: TriggerType, amount: number, workerName: string, zone?: string, locationHistory?: any[]) => {
     if (!token) return;
     try {
       const res = await fetch('/api/trigger', {
@@ -140,7 +140,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ trigger_type: type, zone })
+        body: JSON.stringify({ trigger_type: type, zone, locationHistory })
       });
 
       const data = await res.json();

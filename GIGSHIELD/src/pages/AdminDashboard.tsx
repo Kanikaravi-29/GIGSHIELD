@@ -7,7 +7,7 @@ import {
   RefreshCw, XCircle, Flag,
 } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -198,6 +198,27 @@ export default function AdminDashboard() {
     });
   }, [claims]);
 
+  const predictiveData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // Simulation: Higher risk mid-week due to predicted weather events
+    const baseRiskMap = [12, 15, 65, 80, 40, 20, 10]; // e.g. Wed/Thu rainstorm
+    
+    // Scale by total recent claims
+    const recentClaimsTotal = claims.slice(0, 10).reduce((sum, c) => sum + c.payout_amount, 0) || 5000;
+    
+    return days.map((day, i) => {
+      const risk = baseRiskMap[i];
+      const predictedClaims = Math.round((recentClaimsTotal * risk) / 100);
+      
+      return {
+        day,
+        riskScore: risk,
+        predictedClaims,
+        events: risk > 50 ? 'Rainstorm Expected' : 'Normal Operations'
+      };
+    });
+  }, [claims]);
+
   const handleLogout = () => { logout(); navigate('/'); };
 
   if (loading) {
@@ -251,7 +272,12 @@ export default function AdminDashboard() {
             <OverviewCard icon={Users} label="Total Partners" value={String(stats?.totalPartners ?? 0)} color="text-primary" />
             <OverviewCard icon={FileText} label="Active Policies" value={String(stats?.activePolicies ?? 0)} color="text-success" />
             <OverviewCard icon={DollarSign} label="Total Payouts" value={`₹${(stats?.totalPayouts ?? 0).toLocaleString()}`} color="text-warning" />
-            <OverviewCard icon={TrendingUp} label="Avg Risk Score" value={`${stats?.avgRiskScore ?? 0}%`} color={stats?.avgRiskScore > 50 ? 'text-destructive' : 'text-success'} />
+            <OverviewCard 
+              icon={TrendingUp} 
+              label="Loss Ratio" 
+              value={`${Math.round(((stats?.totalPayouts ?? 0) / (Math.max(stats?.activePolicies ?? 1, 1) * 200 * 4)) * 100)}%`} 
+              color={(((stats?.totalPayouts ?? 0) / (Math.max(stats?.activePolicies ?? 1, 1) * 200 * 4)) * 100) > 60 ? 'text-destructive' : 'text-success'} 
+            />
             <OverviewCard icon={AlertCircle} label="Suspicious" value={String(stats?.suspicious ?? 0)} color="text-destructive" />
             <OverviewCard icon={ClipboardCheck} label="Review Queue" value={String(stats?.reviewQueue ?? 0)} color="text-warning" />
           </motion.div>
@@ -301,7 +327,7 @@ export default function AdminDashboard() {
 
           {/* Top Row: Fraud Monitoring and Charts (Moved Above) */}
           {(['admin', 'provider'].includes(user?.role || '')) && (
-            <div className="lg:col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="lg:col-span-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* Fraud Monitoring */}
               <Card className="bg-card border-border">
@@ -336,6 +362,41 @@ export default function AdminDashboard() {
                         <Bar dataKey="avgRisk" fill="hsl(239, 84%, 67%)" radius={[4, 4, 0, 0]} name="Avg Risk %" />
                         <Bar dataKey="totalPayouts" fill="hsl(160, 60%, 45%)" radius={[4, 4, 0, 0]} name="Total Payouts ₹" />
                       </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Predictive Claims Chart */}
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+                <Card className="bg-card border-border h-full">
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-warning" /> Next 7 Days Forecast
+                      </CardTitle>
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[9px]">AI Prediction</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={predictiveData}>
+                        <defs>
+                          <linearGradient id="colorRiskPred" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(347, 77%, 60%)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="hsl(347, 77%, 60%)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 33%, 17%)" vertical={false} />
+                        <XAxis dataKey="day" stroke="hsl(215, 20%, 65%)" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke="hsl(215, 20%, 65%)" fontSize={11} tickLine={false} axisLine={false} />
+                        <Tooltip 
+                            contentStyle={{ backgroundColor: 'hsl(217, 33%, 17%)', border: '1px solid hsl(217, 33%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 98%)' }}
+                            formatter={(value: any, name: string) => [name === 'predictedClaims' ? `₹${value}` : `${value}%`, name === 'predictedClaims' ? 'Predicted Claims' : 'Weather Risk']}
+                        />
+                        <Area type="monotone" dataKey="riskScore" stroke="hsl(347, 77%, 60%)" fillOpacity={1} fill="url(#colorRiskPred)" strokeWidth={2} name="riskScore" />
+                        <Area type="monotone" dataKey="predictedClaims" stroke="hsl(35, 92%, 60%)" fill="none" strokeDasharray="5 5" strokeWidth={2} name="predictedClaims" />
+                      </AreaChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
@@ -600,13 +661,14 @@ function DetailBlock({ label, value }: { label: string; value: string }) {
 
 function SuccessStep({ label, status = 'success' }: { label: string; status?: 'success' | 'warning' | 'danger' }) {
   const colorClass = status === 'success' ? 'text-success' : status === 'warning' ? 'text-warning' : 'text-destructive';
+  const labelText = status === 'success' ? 'Success' : status === 'warning' ? 'Mismatch' : 'Failed';
   return (
     <div className="flex items-center justify-between text-xs">
       <div className="flex items-center gap-2.5 text-muted-foreground">
         <CheckCircle2 className={`w-4 h-4 ${colorClass}`} />
         <span>{label}</span>
       </div>
-      <span className={`font-bold capitalize ${colorClass}`}>Success</span>
+      <span className={`font-bold capitalize ${colorClass}`}>{labelText}</span>
     </div>
   );
 }

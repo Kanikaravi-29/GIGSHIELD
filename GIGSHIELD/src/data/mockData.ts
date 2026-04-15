@@ -43,5 +43,5 @@ export const AGGREGATE_RISK_DATA = [
   { month: 'Mar', avgRisk: 40, totalPayouts: 55000, policies: 1240 },
 ];
 
-export const CITIES = ['Chennai', 'Coimbatore', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Kolkata', 'Pune'];
+export const CITIES = ['Chennai', 'Coimbatore', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Kolkata', 'Pune', 'Tirupur'];
 export const PLATFORMS = ['Amazon', 'Flipkart'];
