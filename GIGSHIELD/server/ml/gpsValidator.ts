@@ -25,7 +25,10 @@ export const analyzeGPSContinuity = (history: LocationPoint[]) => {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = R * c; // meters
 
-        const timeDiffSecs = (p2.timestamp - p1.timestamp) / 1000;
+        const t1 = typeof p1.timestamp === 'string' ? new Date(p1.timestamp).getTime() : p1.timestamp;
+        const t2 = typeof p2.timestamp === 'string' ? new Date(p2.timestamp).getTime() : p2.timestamp;
+
+        const timeDiffSecs = (t2 - t1) / 1000;
         const speedKmph = (distance / timeDiffSecs) * 3.6;
 
         // If moving faster than 150 km/h, flag as teleportation/spoofed

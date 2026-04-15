@@ -278,31 +278,28 @@ app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
         // 2. Income vs Payout Ratio Check
         const incomeRatio = payout / dailyTarget;
 
-        let fraudRisk = 'Low';
-        let claimStatus = 'Approved';
-
-        // 3. GPS Anti-Spoofing ML Validation
+        // 3. Advanced Fraud Scoring Engine (Phase 3 Integration)
         const gpsAnalysis = analyzeGPSContinuity(locationHistory || []);
         const gpsMatch = gpsAnalysis.isSpoofed ? 0 : 1;
+        
+        const fraudScore = calculateClaimFraudScore({
+          isGpsSpoofed: gpsAnalysis.isSpoofed,
+          recentClaimsCount: recentClaims.count,
+          incomeRatio: incomeRatio
+        });
 
-        if (recentClaims.count >= 10) {
-          // Rule: More than 10 claims in 24 hours is High Risk (velocity check)
-          fraudRisk = 'High';
+        const fraudRisk = getRiskLabel(fraudScore);
+        let claimStatus = 'Approved';
+        
+        if (fraudScore > 70 || gpsAnalysis.isSpoofed) {
           claimStatus = 'Under Review';
-        }
-
-        // ML Override
-        if (gpsAnalysis.isSpoofed) {
-          fraudRisk = 'High';
-          claimStatus = 'Under Review';
-          console.warn('🚨 GPS Spoofing Detected for user', userId, gpsAnalysis.anomalyDetails);
         }
         // ------------------------------------
 
         const claimRes = await db.run(`
-          INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, zone)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `, [userId, trigger_type, payout, claimStatus, gpsMatch, fraudRisk, zone]);
+          INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, zone, fraud_score)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [userId, trigger_type, payout, claimStatus, gpsMatch, fraudRisk, zone, fraudScore]);
 
         newClaim = await db.get(`
           SELECT c.*, u.platform_id 

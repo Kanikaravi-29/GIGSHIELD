@@ -153,9 +153,16 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             created_at: data.claim.created_at || new Date().toISOString()
           };
           setDemoClaims(prev => [newClaim, ...prev]);
-          toast.success("Disruption detected → Claim generated successfully", {
-            description: `₹${data.claim.payout_amount} approved for "${type}" trigger.`,
-          });
+          
+          if (data.claim.status === 'Under Review') {
+            toast.warning("Claim Flagged for Review", {
+              description: `Anomalous activity detected. Our AI is verifying your claim session.`,
+            });
+          } else {
+            toast.success("Disruption detected → Claim generated", {
+              description: `₹${data.claim.payout_amount} approved for "${type}" trigger.`,
+            });
+          }
         } else if (isPolicyActive) {
           toast.info("Disruption logged", {
             description: `"${type}" is not in your covered triggers. Activate a policy that includes it.`

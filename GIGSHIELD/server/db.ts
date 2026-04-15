@@ -84,6 +84,7 @@ export const initDB = async () => {
       { col: "ALTER TABLE users ADD COLUMN admin_type TEXT", label: "admin_type" },
       { col: "ALTER TABLE claims ADD COLUMN zone TEXT", label: "zone" },
       { col: "ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'pending'", label: "status" },
+      { col: "ALTER TABLE claims ADD COLUMN fraud_score INTEGER DEFAULT 0", label: "fraud_score" },
     ];
 
     for (const upgrade of schemaUpgrades) {
