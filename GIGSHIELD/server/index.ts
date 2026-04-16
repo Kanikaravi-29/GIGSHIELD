@@ -5,8 +5,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { calculateFraudScore } from '../src/lib/fraudScorer.js';
-
-dotenv.config();
+import { analyzeGPSContinuity, LocationPoint } from './ml/gpsValidator.js';
+import { calculateClaimFraudScore, getRiskLabel } from './ml/fraudScorer.js';
 
 dotenv.config();
 
@@ -227,74 +227,67 @@ app.get('/api/policy/user', authenticateToken, async (req: any, res: any) => {
 });
 
 app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
-  const { trigger_type, zone } = req.body;
+  // 1. You MUST extract these variables from req.body first!
+  const { trigger_type, zone, history } = req.body;
   const db = await getDB();
 
   try {
-    const userId = req.user.id;
+    const userId = req.user.id; // 2. You MUST define userId from the token!
+    // Log the event
     await db.run(`INSERT INTO triggers (trigger_type) VALUES (?)`, [trigger_type]);
 
+    // Find active policy
     const policy = await db.get(`
       SELECT * FROM policies 
       WHERE user_id = ? AND status = 'Active' AND end_date > datetime('now')
     `, [userId]);
 
     let newClaim = null;
-    let triggerRes = { lastID: 0 }; // Placeholder for response
 
     if (policy) {
       const protectedTriggers = policy.selected_triggers?.split(',') || [];
-      // 🟢 Check if this specific trigger is covered by the policy
       const isCovered = protectedTriggers.includes(trigger_type);
 
-      // --- PREVENT DUPLICATE CLAIMS ---
-      const alreadyClaimed = await db.get(
-        'SELECT id FROM claims WHERE user_id = ? AND trigger_type = ? AND zone = ? AND created_at > datetime("now", "-24 hours")',
-        [userId, trigger_type, zone]
-      );
+      // 🛰️ MASTER FEATURE: Advanced GPS Spoofing Check
 
-      if (alreadyClaimed) {
-        return res.status(400).json({ error: `Claim for "${trigger_type}" already processed.` });
-      }
+      const gpsAnalysis = analyzeGPSContinuity(history || []);
+      const isGpsSpoofed = gpsAnalysis?.isSpoofed || false;
 
       const worker = await db.get('SELECT daily_income FROM users WHERE id = ?', [userId]);
       const dailyTarget = worker?.daily_income || 1400;
-      const payout = Math.round(dailyTarget * policy.coverage_level);
+      const payout = Math.round(dailyTarget * (policy.coverage_level || 1));
 
       const recentClaims = await db.get(
         'SELECT COUNT(*) as count FROM claims WHERE user_id = ? AND created_at > datetime("now", "-24 hours")',
         [userId]
       );
 
-      // 🟢 DYNAMIC FACTORS: If NOT covered, weatherMatch becomes FALSE (triggering a score penalty)
+      // 🧠 YOUR FEATURE: ML Fraud Factors
       const factors = {
         weatherMatch: isCovered,
-        gpsConsistent: true,
-        patternMatch: recentClaims.count < 3,
+        gpsConsistent: !isGpsSpoofed,
+        patternMatch: (recentClaims?.count || 0) < 3,
         deviceIntegrity: true
       };
 
       const mlScore = calculateFraudScore(factors);
 
-      // 🟢 LOGIC SYNC: If it's not covered, it's Rejected + High Risk automatically
-      let claimStatus = !isCovered ? 'Rejected' : (mlScore > 70 ? 'Under Review' : 'Approved');
-      let fraudRiskLabel = !isCovered || mlScore > 70 ? 'High' : (mlScore > 30 ? 'Medium' : 'Low');
+      let claimStatus = !isCovered || isGpsSpoofed ? 'Rejected' : (mlScore > 70 ? 'Under Review' : 'Approved');
+      let fraudRiskLabel = !isCovered || isGpsSpoofed || mlScore > 70 ? 'High' : (mlScore > 30 ? 'Medium' : 'Low');
 
+      // Final Database Write
       const claimRes = await db.run(`
         INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, fraud_score, zone)
-        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
-      `, [userId, trigger_type, payout, claimStatus, fraudRiskLabel, mlScore, zone]);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [userId, trigger_type, payout, claimStatus, isGpsSpoofed ? 0 : 1, fraudRiskLabel, mlScore, zone]);
 
       newClaim = await db.get(`SELECT * FROM claims WHERE id = ?`, [claimRes.lastID]);
     }
 
-    res.status(201).json({
-      trigger: { trigger_type },
-      claim: newClaim
-    });
+    res.status(201).json({ trigger: { trigger_type }, claim: newClaim });
 
   } catch (err: any) {
-    console.error(err);
+    console.error("Trigger Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -365,6 +358,34 @@ app.get('/api/claims', authenticateToken, async (req: any, res: any) => {
       ORDER BY c.created_at DESC
     `);
     res.json(claims);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/claims/:id/payout', authenticateToken, async (req: any, res: any) => {
+  const db = await getDB();
+  try {
+    const claim = await db.get('SELECT * FROM claims WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    if (!claim) return res.status(404).json({ error: 'Claim not found or access denied.' });
+
+    if (claim.status !== 'Approved') {
+      return res.status(400).json({ error: 'Only approved claims can be paid out.' });
+    }
+
+    // Simulate Payment Gateway Delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    await db.run(`UPDATE claims SET status = 'Paid', updated_at = datetime('now') WHERE id = ?`, [req.params.id]);
+
+    res.json({
+      success: true,
+      transaction_id: `rzp_test_${Math.random().toString(36).substr(2, 9)}`,
+      payout_amount: claim.payout_amount,
+      status: 'Paid',
+      message: 'Instant payout processed successfully.'
+    });
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message });

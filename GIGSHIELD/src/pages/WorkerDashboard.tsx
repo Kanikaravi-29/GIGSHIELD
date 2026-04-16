@@ -51,6 +51,7 @@ export default function WorkerDashboard() {
   const [activePolicy, setActivePolicy] = useState<any>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const [currentZone, setCurrentZone] = useState(user?.zone || 'A4');
+  const [simulateSpoofedGPS, setSimulateSpoofedGPS] = useState(false);
 
   const fetchUserDashboard = async () => {
     if (!token) return;
@@ -164,12 +165,38 @@ export default function WorkerDashboard() {
     });
   }, [demoClaims, dailyIncome]);
 
+  const generateMockLocationHistory = (isSpoofed: boolean) => {
+    // Generate an array of 3 timestamped coordinates
+    const now = new Date();
+    // Genuine route: points are within a few hundred meters, traversed over 15 minutes
+    // Spoofed route: jumped 200km instantly
+    
+    // Chennai coordinates roughly
+    const baseLat = 13.0827; 
+    const baseLng = 80.2707;
+
+    if (isSpoofed) {
+      return [
+        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString() },
+        { lat: baseLat + 2, lng: baseLng + 2, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString() }, // Jumped hundreds of km in 10 mins
+        { lat: baseLat + 2.5, lng: baseLng + 2.5, timestamp: now.toISOString() }
+      ];
+    } else {
+      return [
+        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString() },
+        { lat: baseLat + 0.001, lng: baseLng + 0.001, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString() },
+        { lat: baseLat + 0.002, lng: baseLng + 0.002, timestamp: now.toISOString() }
+      ];
+    }
+  };
+
   const triggerEvent = async (type: TriggerType) => {
     if (!isPolicyActive) {
       toast.error("Shield Inactive", { description: "Please activate your policy first to qualify for claims." });
       return;
     }
-    await triggerDisruption(type, Number(potentialPayout), user?.name || 'Worker', currentZone);
+    const mockLocationHistory = generateMockLocationHistory(simulateSpoofedGPS);
+    await triggerDisruption(type, Number(potentialPayout), user?.name || 'Worker', currentZone, mockLocationHistory);
     
     // Explicit sync with DB after simulation
     await fetchUserPolicy();
@@ -223,7 +250,7 @@ export default function WorkerDashboard() {
               className="bg-transparent text-[10px] font-bold outline-none border-none cursor-pointer text-foreground"
             >
               {['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2'].map(z => (
-                <option key={z} value={z} className="bg-background text-foreground">{z}</option>
+                <option key={z} value={z} className="bg-background text-foreground">Zone {z}</option>
               ))}
             </select>
           </div>
@@ -431,6 +458,13 @@ export default function WorkerDashboard() {
                       <MapPin className="w-3 h-3 mr-1" /> Zone Curfew
                     </Button>
                   </div>
+                  <div className="mt-4 pt-3 border-t border-primary-foreground/20 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/70">Simulate GPS Spoofing</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={simulateSpoofedGPS} onChange={() => setSimulateSpoofedGPS(!simulateSpoofedGPS)} />
+                      <div className="w-9 h-5 bg-background border border-primary-foreground/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-destructive"></div>
+                    </label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -599,7 +633,7 @@ export default function WorkerDashboard() {
                   <CardTitle className="text-sm font-medium text-foreground">Disruption Heatmap</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DisruptionMap activeTriggers={activeTriggers} />
+                  <DisruptionMap activeTriggers={activeTriggers} city={user?.city} selectedZone={currentZone} />
                 </CardContent>
               </Card>
             </motion.div>
@@ -612,29 +646,63 @@ export default function WorkerDashboard() {
                 <CardContent>
                   <div className="space-y-3">
                     {demoClaims.length > 0 ? demoClaims.map((claim, i) => (
-                      <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background border border-border">
-                        <div>
-                          <p className="text-xs font-bold text-foreground capitalize">
-                            {claim.trigger_type} Event
-                            {claim.zone && <span className="ml-1 text-[10px] text-primary/70 font-mono">({claim.zone})</span>}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-[10px] text-muted-foreground">{new Date(claim.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
-                            <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
-                            <p className={`text-[10px] font-semibold px-1 rounded ${
-                              ['Paid', 'Approved'].includes(claim.status) 
-                                ? 'bg-success/10 text-success' 
-                                : claim.status === 'Rejected' 
-                                  ? 'bg-destructive/10 text-destructive' 
-                                  : 'bg-warning/10 text-warning'
-                            }`}>
-                              {claim.status}
+                      <div key={i} className="flex flex-col p-3 rounded-lg bg-background border border-border">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-xs font-bold text-foreground capitalize">
+                              {claim.trigger_type} Event
+                              {claim.zone && <span className="ml-1 text-[10px] text-primary/70 font-mono">({claim.zone})</span>}
                             </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-[10px] text-muted-foreground">{new Date(claim.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                              <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
+                              <p className={`text-[10px] font-semibold px-1 py-0.5 rounded ${
+                                ['Paid', 'Approved'].includes(claim.status) 
+                                  ? 'bg-success/10 text-success' 
+                                  : claim.status === 'Rejected' 
+                                    ? 'bg-destructive/10 text-destructive' 
+                                    : 'bg-warning/10 text-warning'
+                              }`}>
+                                {claim.status}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-mono font-bold text-foreground">₹{claim.payout_amount}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs font-mono font-bold text-foreground">₹{claim.payout_amount}</p>
-                        </div>
+
+                        {/* --- SIMULATED RAZORPAY / INSTANT PAYOUT INJECTION --- */}
+                        {claim.status === 'Approved' && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <Button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/claims/${claim.id}/payout`, {
+                                    method: 'POST',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  const data = await res.json();
+                                  if (res.ok) {
+                                    toast.success("Payment Successful via Razorpay", {
+                                      description: `₹${data.payout_amount} transferred instantly. Txn: ${data.transaction_id}`,
+                                      icon: <ShieldCheck className="w-4 h-4 text-success" />
+                                    });
+                                    fetchUserClaims(); 
+                                  } else {
+                                    toast.error(data.error);
+                                  }
+                                } catch (err) {
+                                  toast.error("Payment integration failed.");
+                                }
+                              }}
+                              className="w-full text-xs font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform animate-pulse"
+                            >
+                              <Zap className="w-4 h-4 mr-2" /> Receive Instant Payout via UPI
+                            </Button>
+                          </div>
+                        )}
+                        {/* -------------------------------------------------- */}
                       </div>
                     )) : (
                       <div className="text-center py-6 text-muted-foreground text-[10px]">No claim history found.</div>
