@@ -4,6 +4,7 @@ import { initDB, getDB } from './db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { calculateFraudScore } from '../src/lib/fraudScorer.js';
 
 dotenv.config();
 
@@ -228,85 +229,70 @@ app.get('/api/policy/user', authenticateToken, async (req: any, res: any) => {
 app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
   const { trigger_type, zone } = req.body;
   const db = await getDB();
+
   try {
     const userId = req.user.id;
+    await db.run(`INSERT INTO triggers (trigger_type) VALUES (?)`, [trigger_type]);
 
-    // Log the trigger event
-    const triggerRes = await db.run(
-      `INSERT INTO triggers (trigger_type) VALUES (?)`,
-      [trigger_type]
-    );
-
-    // Find the user's active policy
     const policy = await db.get(`
       SELECT * FROM policies 
       WHERE user_id = ? AND status = 'Active' AND end_date > datetime('now')
     `, [userId]);
 
     let newClaim = null;
+    let triggerRes = { lastID: 0 }; // Placeholder for response
+
     if (policy) {
-      // Always create claim if trigger type is covered by the policy
       const protectedTriggers = policy.selected_triggers?.split(',') || [];
-      if (protectedTriggers.includes(trigger_type)) {
-        // --- PREVENT DUPLICATE CLAIMS FOR SAME TRIGGER IN SAME ZONE ---
-        const alreadyClaimed = await db.get(
-          'SELECT id FROM claims WHERE user_id = ? AND trigger_type = ? AND zone = ? AND created_at > datetime("now", "-24 hours")',
-          [userId, trigger_type, zone]
-        );
+      // 🟢 Check if this specific trigger is covered by the policy
+      const isCovered = protectedTriggers.includes(trigger_type);
 
-        if (alreadyClaimed) {
-          return res.status(400).json({ error: `Claim for "${trigger_type}" in ${zone || 'your zone'} has already been processed for today.` });
-        }
-        // ---------------------------------------------------------------
+      // --- PREVENT DUPLICATE CLAIMS ---
+      const alreadyClaimed = await db.get(
+        'SELECT id FROM claims WHERE user_id = ? AND trigger_type = ? AND zone = ? AND created_at > datetime("now", "-24 hours")',
+        [userId, trigger_type, zone]
+      );
 
-        // --- DYNAMIC FRAUD DETECTION LOGIC ---
-        // Fetch worker data for income-based risk analysis
-        const worker = await db.get('SELECT daily_income FROM users WHERE id = ?', [userId]);
-        const dailyTarget = worker?.daily_income || 1400;
-
-        const payout = Math.round(dailyTarget * policy.coverage_level);
-
-        // 1. Velocity Check (Claim frequency in last 24 hours)
-        const recentClaims = await db.get(
-          'SELECT COUNT(*) as count FROM claims WHERE user_id = ? AND created_at > datetime("now", "-24 hours")',
-          [userId]
-        );
-
-        // 2. Income vs Payout Ratio Check
-        const incomeRatio = payout / dailyTarget;
-
-        let fraudRisk = 'Low';
-        let claimStatus = 'Approved';
-
-        if (recentClaims.count >= 10) {
-          // Rule: More than 10 claims in 24 hours is High Risk (velocity check)
-          fraudRisk = 'High';
-          claimStatus = 'Under Review';
-        } else if (incomeRatio > 1.5) {
-          // Rule: Payout significantly exceeding daily income is Medium Risk
-          fraudRisk = 'Medium';
-          claimStatus = 'Under Review';
-        }
-        // ------------------------------------
-
-        const claimRes = await db.run(`
-          INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, zone)
-          VALUES (?, ?, ?, ?, 1, ?, ?)
-        `, [userId, trigger_type, payout, claimStatus, fraudRisk, zone]);
-
-        newClaim = await db.get(`
-          SELECT c.*, u.platform_id 
-          FROM claims c 
-          JOIN users u ON c.user_id = u.id 
-          WHERE c.id = ?
-        `, [claimRes.lastID]);
+      if (alreadyClaimed) {
+        return res.status(400).json({ error: `Claim for "${trigger_type}" already processed.` });
       }
+
+      const worker = await db.get('SELECT daily_income FROM users WHERE id = ?', [userId]);
+      const dailyTarget = worker?.daily_income || 1400;
+      const payout = Math.round(dailyTarget * policy.coverage_level);
+
+      const recentClaims = await db.get(
+        'SELECT COUNT(*) as count FROM claims WHERE user_id = ? AND created_at > datetime("now", "-24 hours")',
+        [userId]
+      );
+
+      // 🟢 DYNAMIC FACTORS: If NOT covered, weatherMatch becomes FALSE (triggering a score penalty)
+      const factors = {
+        weatherMatch: isCovered,
+        gpsConsistent: true,
+        patternMatch: recentClaims.count < 3,
+        deviceIntegrity: true
+      };
+
+      const mlScore = calculateFraudScore(factors);
+
+      // 🟢 LOGIC SYNC: If it's not covered, it's Rejected + High Risk automatically
+      let claimStatus = !isCovered ? 'Rejected' : (mlScore > 70 ? 'Under Review' : 'Approved');
+      let fraudRiskLabel = !isCovered || mlScore > 70 ? 'High' : (mlScore > 30 ? 'Medium' : 'Low');
+
+      const claimRes = await db.run(`
+        INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, fraud_score, zone)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+      `, [userId, trigger_type, payout, claimStatus, fraudRiskLabel, mlScore, zone]);
+
+      newClaim = await db.get(`SELECT * FROM claims WHERE id = ?`, [claimRes.lastID]);
     }
 
     res.status(201).json({
-      trigger: { id: triggerRes.lastID, trigger_type },
+      trigger: { trigger_type },
       claim: newClaim
     });
+
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -517,7 +503,7 @@ app.get('/api/admin/claims', authenticateToken, requireAdminType(['control', 'se
     const claims = await db.all(`
       SELECT 
         c.id, c.trigger_type, c.payout_amount, c.status, c.zone,
-        c.fraud_risk, c.gps_match, c.created_at, c.updated_at,
+        c.fraud_risk,c.fraud_score, c.gps_match, c.created_at, c.updated_at,
         u.name as worker_name, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone as user_home_zone
       FROM claims c
       JOIN users u ON c.user_id = u.id

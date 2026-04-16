@@ -69,6 +69,7 @@ export const initDB = async () => {
         status TEXT NOT NULL DEFAULT 'Under Review',
         gps_match INTEGER DEFAULT 1,
         fraud_risk TEXT DEFAULT 'Low',
+        fraud_score INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
@@ -84,6 +85,7 @@ export const initDB = async () => {
       { col: "ALTER TABLE users ADD COLUMN admin_type TEXT", label: "admin_type" },
       { col: "ALTER TABLE claims ADD COLUMN zone TEXT", label: "zone" },
       { col: "ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'pending'", label: "status" },
+      { col: "ALTER TABLE claims ADD COLUMN fraud_score INTEGER DEFAULT 0", label: "fraud_score" },
     ];
 
     for (const upgrade of schemaUpgrades) {

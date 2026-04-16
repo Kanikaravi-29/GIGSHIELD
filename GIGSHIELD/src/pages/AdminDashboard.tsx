@@ -52,7 +52,7 @@ export default function AdminDashboard() {
     try {
       const isAdmin = user.role === 'admin' || user.role === 'provider';
       const isPrivileged = isAdmin; // Any admin or provider can see stats/workers now
-      
+
       const requests: any = {};
       if (isPrivileged) {
         requests.stats = fetch(`${API}/api/admin/stats`, { headers: authHeaders });
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
       const idMatch = w.platformId?.toLowerCase().includes(q);
       if (!nameMatch && !emailMatch && !idMatch) return false;
     }
-    
+
     return true;
   }).sort((a, b) => {
     // Sort logic: Platform Admins first, then Gig Workers
@@ -181,13 +181,13 @@ export default function AdminDashboard() {
       });
 
       const totalPayouts = monthClaims.reduce((sum, c) => sum + (c.payout_amount || 0), 0);
-      
+
       // Calculate weighted risk average
       const riskSum = monthClaims.reduce((sum, c) => {
         const weight = c.fraud_risk === 'High' ? 90 : c.fraud_risk === 'Medium' ? 50 : 15;
         return sum + weight;
       }, 0);
-      
+
       const avgRisk = monthClaims.length > 0 ? Math.round(riskSum / monthClaims.length) : 0;
 
       return {
@@ -511,9 +511,7 @@ export default function AdminDashboard() {
                                         </div>
                                       </div>
                                       <div className="text-right">
-                                        <span className={`text-4xl font-black font-mono leading-none ${selectedClaim.fraud_risk === 'High' ? 'text-destructive' : selectedClaim.fraud_risk === 'Medium' ? 'text-warning' : 'text-success'}`}>
-                                          {selectedClaim.fraud_risk === 'High' ? '88' : selectedClaim.fraud_risk === 'Medium' ? '54' : '42'}/100
-                                        </span>
+                                        <span className={`text-4xl font-black font-mono leading-none ${selectedClaim.fraud_score > 70 ? 'text-destructive' : selectedClaim.fraud_score > 30 ? 'text-warning' : 'text-success'}`}>{selectedClaim.fraud_score || 0}/100 </span>
                                       </div>
                                     </div>
                                     <div className="absolute top-0 right-0 p-8 opacity-10">
