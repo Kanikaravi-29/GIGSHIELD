@@ -18,9 +18,12 @@ GigShield PRO is a state-of-the-art parametric insurance platform designed for e
 ## RazorPay Demo Credentials
 
 cards -> Add a New Card 
+
         Card Number : 4386 2894 0766 0153
+        
         CVV : 123
-        otp : 123456/1234
+        
+        OTP : 123456/1234
 
 ---
 
