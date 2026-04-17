@@ -131,7 +131,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const triggerDisruption = async (type: TriggerType, amount: number, workerName: string, zone?: string, locationHistory?: any[]) => {
+  const triggerDisruption = async (type: TriggerType, amount: number, workerName: string, zone?: string, locationHistory?: any[], hardwareData?: any) => {
     if (!token) return;
     try {
       const res = await fetch('/api/trigger', {
@@ -140,7 +140,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ trigger_type: type, zone, locationHistory })
+        body: JSON.stringify({ trigger_type: type, zone, locationHistory, hardwareData })
       });
 
       const data = await res.json();

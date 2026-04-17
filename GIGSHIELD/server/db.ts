@@ -74,6 +74,35 @@ export const initDB = async () => {
       )
     `);
 
+    // NEW: Payment tracking table
+    await db.exec(`
+  CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    razorpay_order_id TEXT NOT NULL,
+    razorpay_payment_id TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`);
+
+    // NEW: Payout simulation table
+    await db.exec(`
+  CREATE TABLE IF NOT EXISTS payouts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    claim_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    transaction_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (claim_id) REFERENCES claims(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`);
+
     // Force Schema Upgrade: Add missing columns sequentially
     const schemaUpgrades = [
       { col: "ALTER TABLE claims ADD COLUMN lat REAL", label: "lat" },
@@ -85,6 +114,8 @@ export const initDB = async () => {
       { col: "ALTER TABLE claims ADD COLUMN zone TEXT", label: "zone" },
       { col: "ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'pending'", label: "status" },
       { col: "ALTER TABLE claims ADD COLUMN fraud_score INTEGER DEFAULT 0", label: "fraud_score" },
+      { col: "ALTER TABLE claims ADD COLUMN fraud_status TEXT DEFAULT 'LOW'", label: "fraud_status" },
+      { col: "ALTER TABLE claims ADD COLUMN gps_valid BOOLEAN DEFAULT 1", label: "gps_valid" },
     ];
 
     for (const upgrade of schemaUpgrades) {

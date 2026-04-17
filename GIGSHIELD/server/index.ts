@@ -7,8 +7,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Razorpay instance
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_ekuUcHA0UOfU6z',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'KTu5xQhLEEo0FaKC0uHz2bwW',
+});
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 import { analyzeGPSContinuity, LocationPoint } from './ml/gpsValidator.js';
-import { calculateClaimFraudScore, getRiskLabel } from './ml/fraudScorer.js';
+import { calculateClaimFraudScore, getRiskLabel, trainFraudModelFromDB, loadModel } from './ml/fraudScorer.js';
+import { predictNext7Days, calculatePredictiveLossRatio } from './ml/forecastEngine.js';
+import { startAutonomousMonitor } from './ml/monitor.js';
+import { startAutonomousMonitor } from './ml/monitor.js';
 
 dotenv.config();
 
@@ -154,13 +164,13 @@ app.post('/api/auth/login', async (req, res) => {
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
     if (!user) return res.status(400).json({ error: 'User not found' });
 
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) return res.status(400).json({ error: 'Invalid password' });
-
     // 2. Status check
-    if (user.status !== 'approved') {
+    if (user.status !== 'approved' && user.role === 'worker') {
       return res.status(403).json({ error: 'Account pending approval. Please wait for an administrator to verify your identity.' });
     }
+
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+    if (!validPassword) return res.status(400).json({ error: 'Invalid password' });
 
     const token = jwt.sign({
       id: user.id, email: user.email, role: user.role, adminType: user.admin_type
@@ -229,7 +239,7 @@ app.get('/api/policy/user', authenticateToken, async (req: any, res: any) => {
 });
 
 app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
-  const { trigger_type, zone, locationHistory } = req.body;
+  const { trigger_type, zone, locationHistory, hardwareData } = req.body;
   const db = await getDB();
   try {
     const userId = req.user.id;
@@ -267,39 +277,56 @@ app.post('/api/trigger', authenticateToken, async (req: any, res: any) => {
         const worker = await db.get('SELECT daily_income FROM users WHERE id = ?', [userId]);
         const dailyTarget = worker?.daily_income || 1400;
 
-        const payout = Math.round(dailyTarget * policy.coverage_level);
+        const workerData = await db.get('SELECT city, zone, daily_income FROM users WHERE id = ?', [userId]);
+        const payout = Math.round((workerData?.daily_income || 1400) * policy.coverage_level);
 
-        // 1. Velocity Check (Claim frequency in last 24 hours)
         const recentClaims = await db.get(
           'SELECT COUNT(*) as count FROM claims WHERE user_id = ? AND created_at > datetime("now", "-24 hours")',
           [userId]
         );
+        const incomeRatio = payout / (workerData?.daily_income || 1400);
 
-        // 2. Income vs Payout Ratio Check
-        const incomeRatio = payout / dailyTarget;
+        // ============================================================
+        // 🛰️ GPS FRAUD DETECTION ENGINE
+        // ============================================================
+        const registeredCity = workerData.city;
+        const gpsHistory = locationHistory || [];
 
-        // 3. Advanced Fraud Scoring Engine (Phase 3 Integration)
-        const gpsAnalysis = analyzeGPSContinuity(locationHistory || []);
-        const gpsMatch = gpsAnalysis.isSpoofed ? 0 : 1;
-        
-        const fraudScore = calculateClaimFraudScore({
-          isGpsSpoofed: gpsAnalysis.isSpoofed,
-          recentClaimsCount: recentClaims.count,
-          incomeRatio: incomeRatio
-        });
-
-        const fraudRisk = getRiskLabel(fraudScore);
-        let claimStatus = 'Approved';
-        
-        if (fraudScore > 70 || gpsAnalysis.isSpoofed) {
-          claimStatus = 'Under Review';
+        console.log(`[GPS] Registered city: "${registeredCity}" | Points received: ${gpsHistory.length}`);
+        if (gpsHistory.length > 0) {
+          console.log(`[GPS] Point[0]: lat=${gpsHistory[0].lat}, lng=${gpsHistory[0].lng}`);
         }
-        // ------------------------------------
+
+        const gpsAnalysis = analyzeGPSContinuity(gpsHistory, registeredCity);
+        console.log(`[GPS] Flag=${gpsAnalysis.gpsFlag} | riskScore=${gpsAnalysis.riskScore} | withinCity=${gpsAnalysis.isWithinCity}`);
+        if (gpsAnalysis.details.length) console.log(`[GPS] ${gpsAnalysis.details.join(' | ')}`);
+
+        // Pass GPS signals into fraud scorer
+        const fraudScore = await calculateClaimFraudScore({
+          isSpoofed: gpsAnalysis.isSpoofed,
+          isMocked: gpsAnalysis.hasHardwareMock,
+          gpsFlag: gpsAnalysis.gpsFlag,
+          riskScore: gpsAnalysis.riskScore,
+          recentClaimsCount: recentClaims.count,
+          incomeRatio
+        }, hardwareData);
+
+        const fraudStatus = getRiskLabel(fraudScore);
+        const gpsValid = gpsAnalysis.gpsFlag === 'VALID' ? 1 : 0;
+
+        // Final decision — purely score-driven
+        let claimStatus: string;
+        if (fraudScore <= 30) claimStatus = 'Approved';
+        else if (fraudScore >= 71) claimStatus = 'Rejected';
+        else claimStatus = 'Under Review';
+
+        console.log(`[DECISION] city="${registeredCity}" gps="${gpsAnalysis.gpsFlag}" score=${fraudScore} risk=${fraudStatus} → "${claimStatus}"`);
 
         const claimRes = await db.run(`
-          INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, zone, fraud_score)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [userId, trigger_type, payout, claimStatus, gpsMatch, fraudRisk, zone, fraudScore]);
+          INSERT INTO claims (user_id, trigger_type, payout_amount, status, gps_match, fraud_risk, zone, fraud_score, fraud_status, gps_valid)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [userId, trigger_type, payout, claimStatus, gpsValid, fraudStatus, zone, fraudScore, fraudStatus, gpsValid]);
+
 
         newClaim = await db.get(`
           SELECT c.*, u.platform_id 
@@ -406,7 +433,7 @@ app.post('/api/claims/:id/payout', authenticateToken, async (req: any, res: any)
     await new Promise(resolve => setTimeout(resolve, 800));
 
     await db.run(`UPDATE claims SET status = 'Paid', updated_at = datetime('now') WHERE id = ?`, [req.params.id]);
-    
+
     res.json({
       success: true,
       transaction_id: `rzp_test_${Math.random().toString(36).substr(2, 9)}`,
@@ -445,19 +472,22 @@ app.get('/api/admin/stats', authenticateToken, requireAdminType(['control', 'ver
   const db = await getDB();
   try {
     const totalPartners = await db.get(`SELECT COUNT(*) as count FROM users WHERE role = 'worker'`);
+    const totalPayouts = await db.get(`SELECT SUM(payout_amount) as total FROM claims WHERE status = 'Approved'`);
     const activePolicies = await db.get(`SELECT COUNT(*) as count FROM policies WHERE status = 'Active'`);
-    const totalPayouts = await db.get(`SELECT COALESCE(SUM(payout_amount), 0) as total FROM claims`);
-    const avgRiskScore = await db.get(`SELECT COALESCE(AVG(risk_probability * 100), 0) as avg FROM policies`);
-    const suspicious = await db.get(`SELECT COUNT(*) as count FROM claims WHERE fraud_risk = 'High'`);
+    const suspiciousCount = await db.get(`SELECT COUNT(*) as count FROM claims WHERE fraud_risk = 'High'`);
     const reviewQueue = await db.get(`SELECT COUNT(*) as count FROM claims WHERE status = 'Under Review'`);
+    const allClaims = await db.all('SELECT payout_amount, fraud_score, status FROM claims');
+
+    // 🧠 AI FEATURE: Predictive Loss Ratio
+    const mlLossRatio = await calculatePredictiveLossRatio(allClaims, activePolicies.count || 0);
 
     res.json({
       totalPartners: totalPartners.count,
       activePolicies: activePolicies.count,
-      totalPayouts: Math.round(totalPayouts.total),
-      avgRiskScore: Math.round(avgRiskScore.avg),
-      suspicious: suspicious.count,
+      totalPayouts: totalPayouts.total || 0,
+      suspicious: suspiciousCount.count,
       reviewQueue: reviewQueue.count,
+      mlLossRatio: mlLossRatio // Injecting the ML Result
     });
   } catch (err: any) {
     console.error(err);
@@ -552,7 +582,7 @@ app.get('/api/admin/claims', authenticateToken, requireAdminType(['control', 'se
     const claims = await db.all(`
       SELECT 
         c.id, c.trigger_type, c.payout_amount, c.status, c.zone,
-        c.fraud_risk, c.gps_match, c.created_at, c.updated_at,
+        c.fraud_risk, c.fraud_score, c.gps_match, c.created_at, c.updated_at,
         u.name as worker_name, u.platform, u.platform_id, u.platform_registration_number, u.city, u.zone as user_home_zone
       FROM claims c
       JOIN users u ON c.user_id = u.id
@@ -585,6 +615,100 @@ app.get('/api/admin/claims/:id', authenticateToken, requireAdminType(['control',
   }
 });
 
+// GET /api/worker/insights (Predictive Alerts & Dynamic Pricing)
+app.get('/api/worker/insights', authenticateToken, async (req: any, res: any) => {
+  const db = await getDB();
+  try {
+    const claims = await db.all('SELECT payout_amount, created_at FROM claims');
+    const forecast = await predictNext7Days(claims);
+
+    // Find high risk days for alerts
+    const alerts = forecast
+      .filter((f: any) => f.riskScore > 60)
+      .map((f: any) => ({
+        type: 'warning',
+        message: `${f.events} predicted for ${f.day}.`,
+        severity: f.riskScore > 85 ? 'High' : 'Medium'
+      }));
+
+    // Calculate Dynamic Premium Tiers
+    const maxRisk = Math.max(...forecast.map((f: any) => f.riskScore));
+    const basePremium = 200;
+
+    const tiers = [
+      { name: 'Standard', coverage: 7000, premium: basePremium, recommended: maxRisk < 50 },
+      { name: 'Gold', coverage: 10000, premium: Math.round(basePremium * 1.5), recommended: maxRisk >= 50 && maxRisk < 80 },
+      { name: 'Titanium', coverage: 15000, premium: Math.round(basePremium * 2.2), recommended: maxRisk >= 80 }
+    ];
+
+    res.json({ alerts, tiers, currentRisk: maxRisk });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/worker/insights — Predictive Alerts & Premium Optimization
+app.get('/api/worker/insights', authenticateToken, async (req: any, res: any) => {
+  const db = await getDB();
+  try {
+    const claims = await db.all('SELECT payout_amount, created_at FROM claims');
+    const forecast = await predictNext7Days(claims);
+
+    const alerts = forecast
+      .filter((f: any) => f.riskScore > 10) // See almost all projections
+      .map((f: any) => ({
+        day: f.day,
+        type: 'warning',
+        message: f.riskScore > 70 ? 'Critical Outage Probable.' : f.riskScore > 35 ? 'Moderate Load Predicted.' : 'Standard Demand Expected.',
+        severity: f.riskScore > 70 ? 'High' : f.riskScore > 35 ? 'Medium' : 'Low',
+        recommendedTier: f.riskScore > 70 ? 'Titanium' : f.riskScore > 35 ? 'Gold' : 'Standard'
+      }));
+
+    const maxRisk = Math.max(...forecast.map((f: any) => f.riskScore));
+    const basePremium = 200;
+
+    const tiers = [
+      { id: 'basic', name: 'Standard', premium: basePremium, coverage: 7000, recommended: maxRisk < 50 },
+      { id: 'standard', name: 'Gold', premium: Math.round(basePremium * 1.6), coverage: 10000, recommended: maxRisk >= 50 && maxRisk < 80 },
+      { id: 'premium', name: 'Titanium', premium: Math.round(basePremium * 2.5), coverage: 15000, recommended: maxRisk >= 80 }
+    ];
+
+    res.json({ alerts, tiers, riskScore: maxRisk });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/claims/:id/payout — Simulated Razorpay Payout
+app.post('/api/claims/:id/payout', authenticateToken, async (req: any, res: any) => {
+  const db = await getDB();
+  try {
+    const claim = await db.get('SELECT * FROM claims WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+
+    if (!claim) return res.status(404).json({ error: 'Claim not found' });
+    if (claim.status !== 'Approved') return res.status(400).json({ error: 'Claim not approved yet' });
+
+    // Simulate Payment Gateway logic
+    const transactionId = `RAZOR_TXN_${Math.random().toString(36).substring(7).toUpperCase()}`;
+    await db.run(
+      `UPDATE claims SET status = 'Paid', updated_at = datetime('now') WHERE id = ?`,
+      [req.params.id]
+    );
+
+    res.json({
+      success: true,
+      transaction_id: transactionId,
+      payout_amount: claim.payout_amount,
+      message: 'Instant payout successful via Razorpay'
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/admin/claims/:id — Full administrative control
 app.put('/api/admin/claims/:id', authenticateToken, requireAdminType(['control', 'security']), async (req: any, res: any) => {
   const db = await getDB();
@@ -593,6 +717,19 @@ app.put('/api/admin/claims/:id', authenticateToken, requireAdminType(['control',
   try {
     await db.run(`UPDATE claims SET status = ?, updated_at = datetime('now') WHERE id = ?`, [status, req.params.id]);
     res.json({ success: true, status });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/forecast (AI Prediction)
+app.get('/api/admin/forecast', authenticateToken, requireAdminType(['control', 'security']), async (req: any, res: any) => {
+  const db = await getDB();
+  try {
+    const claims = await db.all('SELECT payout_amount, created_at FROM claims');
+    const forecast = await predictNext7Days(claims);
+    res.json(forecast);
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -660,7 +797,112 @@ app.post('/api/dev/cleanup-admins', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// =============================================
+// PAYMENT & PAYOUT ROUTES (NEW)
+// =============================================
 
+// Create Razorpay order for policy purchase
+app.post('/api/payment/create-order', authenticateToken, async (req: any, res: any) => {
+  try {
+    const { amount } = req.body; // amount in paise (e.g., 10000 = ₹100)
+    const options = {
+      amount: amount,
+      currency: 'INR',
+      receipt: `rcpt_${Date.now()}`,
+    };
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (err: any) {
+    console.error('Order creation failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify payment signature and activate policy
+app.post('/api/payment/verify', authenticateToken, async (req: any, res: any) => {
+  const db = await getDB();
+  const userId = req.user.id;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body;
+
+  try {
+    // Verify signature
+    const generatedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'KTu5xQhLEEo0FaKC0uHz2bwW')
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
+
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: 'Invalid payment signature' });
+    }
+
+    // Save payment record
+    await db.run(
+      `INSERT INTO payments (user_id, razorpay_order_id, razorpay_payment_id, amount, status)
+       VALUES (?, ?, ?, ?, 'SUCCESS')`,
+      [userId, razorpay_order_id, razorpay_payment_id, amount]
+    );
+
+
+
+    res.json({ success: true, message: 'Payment verified and policy activated' });
+  } catch (err: any) {
+    console.error('Payment verification failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Trigger instant payout simulation for an approved claim
+app.post('/api/payout/trigger/:claimId', authenticateToken, async (req: any, res: any) => {
+  const db = await getDB();
+  const { claimId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // Fetch claim and verify ownership (workers can only trigger their own claims)
+    const claim = await db.get(
+      `SELECT * FROM claims WHERE id = ? AND user_id = ?`,
+      [claimId, userId]
+    );
+
+    if (!claim) {
+      return res.status(404).json({ error: 'Claim not found or access denied' });
+    }
+
+    if (claim.status !== 'Approved') {
+      return res.status(400).json({ error: 'Only approved claims can be paid out' });
+    }
+
+    // Check if already paid out
+    const existingPayout = await db.get(
+      `SELECT id FROM payouts WHERE claim_id = ?`,
+      [claimId]
+    );
+    if (existingPayout) {
+      return res.status(400).json({ error: 'Payout already processed for this claim' });
+    }
+
+    // Simulate instant payout
+    const transactionId = `SIM_${crypto.randomBytes(6).toString('hex')}`;
+    await db.run(
+      `INSERT INTO payouts (claim_id, user_id, amount, transaction_id, status)
+       VALUES (?, ?, ?, ?, 'SUCCESS')`,
+      [claimId, userId, claim.payout_amount, transactionId]
+    );
+
+    // Optionally update claim status to 'Paid'
+    await db.run(`UPDATE claims SET status = 'Paid', updated_at = datetime('now') WHERE id = ?`, [claimId]);
+
+    res.json({
+      success: true,
+      transaction_id: transactionId,
+      amount: claim.payout_amount,
+      message: 'Instant payout processed successfully',
+    });
+  } catch (err: any) {
+    console.error('Payout trigger failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -681,7 +923,18 @@ app.use((req, res, next) => {
 });
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
-initDB().then(() => {
+initDB().then(async () => {
+  // Try to load existing ML model, otherwise train from DB
+  const loaded = loadModel();
+  if (!loaded) {
+    const db = await getDB();
+    const claims = await db.all('SELECT * FROM claims');
+    await trainFraudModelFromDB(claims);
+  }
+
+  // ⚡ START AUTONOMOUS AI MONITORING
+  startAutonomousMonitor();
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 GigShield Pro: Backend & Frontend serving on port ${PORT}`);
   });

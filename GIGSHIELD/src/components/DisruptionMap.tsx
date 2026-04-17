@@ -74,20 +74,20 @@ export default function DisruptionMap({ activeTriggers, city = 'Chennai', select
     if (!mapRef.current) return;
 
     if (mapInstanceRef.current) {
-        mapInstanceRef.current.setView(cityCenter, 12);
+      mapInstanceRef.current.setView(cityCenter, 12);
     } else {
-        const map = L.map(mapRef.current, {
-          center: cityCenter,
-          zoom: 12,
-          zoomControl: false,
-          attributionControl: false,
-        });
+      const map = L.map(mapRef.current, {
+        center: cityCenter,
+        zoom: 12,
+        zoomControl: false,
+        attributionControl: false,
+      });
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-          maxZoom: 19,
-        }).addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
 
-        mapInstanceRef.current = map;
+      mapInstanceRef.current = map;
     }
   }, [city, cityCenter]);
 
@@ -98,10 +98,10 @@ export default function DisruptionMap({ activeTriggers, city = 'Chennai', select
 
     const targetZone = zones.find(z => z.id === selectedZone || z.name.includes(selectedZone));
     if (targetZone) {
-        map.flyTo([targetZone.lat, targetZone.lng], 14, {
-            animate: true,
-            duration: 1.5
-        });
+      map.flyTo([targetZone.lat, targetZone.lng], 14, {
+        animate: true,
+        duration: 1.5
+      });
     }
   }, [selectedZone, zones]);
 
@@ -116,7 +116,7 @@ export default function DisruptionMap({ activeTriggers, city = 'Chennai', select
       const risk = getRiskLevel(zone.baseRisk, activeTriggers);
       const color = RISK_COLORS[risk];
       const isSelected = selectedZone && (zone.id === selectedZone || zone.name.includes(selectedZone));
-      
+
       const circle = L.circle([zone.lat, zone.lng], {
         radius: isSelected ? 1200 : 800,
         color: isSelected ? '#FFFFFF' : color,

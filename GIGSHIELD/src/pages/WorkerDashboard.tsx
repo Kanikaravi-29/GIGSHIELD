@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ShieldCheck, AlertTriangle, CloudRain, ThermometerSun,
-  MapPin, Zap, TrendingUp, Activity, LogOut, Info, Shield, Clock,
+  MapPin, Zap, TrendingUp, Activity, LogOut, Info, Shield, Clock, Bell, X, Sparkles
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -20,6 +20,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDemo, TriggerType } from '@/contexts/DemoContext';
 import { RISK_HISTORY, RISK_WEIGHTS } from '@/data/mockData';
 import DisruptionMap from '@/components/DisruptionMap';
+import { generateLocationHistory } from '@/lib/gpsGenerator';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 const TRIGGER_META = [
   { id: 'rain' as const, label: 'Heavy Rain', icon: CloudRain },
@@ -29,13 +36,13 @@ const TRIGGER_META = [
 ];
 
 export default function WorkerDashboard() {
-  const { 
-    isPolicyActive, 
-    setIsPolicyActive, 
-    activeTriggers, 
-    setActiveTriggers, 
-    demoClaims, 
-    triggerDisruption, 
+  const {
+    isPolicyActive,
+    setIsPolicyActive,
+    activeTriggers,
+    setActiveTriggers,
+    demoClaims,
+    triggerDisruption,
     activatePolicyAPI,
     fetchUserPolicy,
     fetchUserClaims
@@ -50,8 +57,12 @@ export default function WorkerDashboard() {
   const [metrics, setMetrics] = useState({ risk_score: null, predicted_loss: null, coverage_amount: 0, active_policies_count: 0 });
   const [activePolicy, setActivePolicy] = useState<any>(null);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [insights, setInsights] = useState<any>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [currentZone, setCurrentZone] = useState(user?.zone || 'A4');
   const [simulateSpoofedGPS, setSimulateSpoofedGPS] = useState(false);
+  const [simulateRooted, setSimulateRooted] = useState(false);
+  const [simulateEmulator, setSimulateEmulator] = useState(false);
 
   const fetchUserDashboard = async () => {
     if (!token) return;
@@ -83,13 +94,24 @@ export default function WorkerDashboard() {
     }
   };
 
+  const fetchAIInsights = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/worker/insights', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setInsights(await res.json());
+    } catch (err) { console.error(err); }
+  };
+
   const refreshDashboard = async () => {
     setIsConnecting(true);
     await Promise.all([
       fetchUserDashboard(),
       fetchUserPolicy(),
       fetchUserClaims(),
-      fetchPolicyDetails()
+      fetchPolicyDetails(),
+      fetchAIInsights()
     ]);
     setIsConnecting(false);
   };
@@ -111,12 +133,87 @@ export default function WorkerDashboard() {
   }, []);
 
   const handleActivate = async () => {
-    // Collect all current config for storage
-    await activatePolicyAPI(packageType, coverageFactor, Number(weeklyPremium), activeTriggers, riskProbability);
-    toast.success("Policy activated and secured in SQLite", {
-      description: `Your ${packageType} coverage is now live in DB.`,
-    });
-    refreshDashboard();
+    if (!token || !user) return;
+
+    const amountInPaise = Math.round(Number(weeklyPremium) * 100);
+
+    try {
+      // 1. Create order on backend
+      const orderRes = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount: amountInPaise }),
+      });
+
+      if (!orderRes.ok) {
+        const errData = await orderRes.json();
+        throw new Error(errData.error || 'Failed to create order');
+      }
+
+      const order = await orderRes.json();
+
+      // 2. Razorpay checkout
+      const options = {
+        key: 'rzp_test_ekuUcHA0UOfU6z',
+        amount: order.amount,
+        currency: order.currency,
+        name: 'GigShield Pro',
+        description: `${packageType} Weekly Coverage`,
+        order_id: order.id,
+        handler: async (response: any) => {
+          try {
+            // 3. Verify payment
+            const verifyRes = await fetch('/api/payment/verify', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount: amountInPaise,
+              }),
+            });
+
+            const data = await verifyRes.json();
+            if (data.success) {
+              // 4. Store policy in DB using existing function
+              await activatePolicyAPI(packageType, coverageFactor, Number(weeklyPremium), activeTriggers, riskProbability);
+              toast.success('Policy Activated!', {
+                description: `Your ${packageType} coverage is now live.`,
+              });
+              refreshDashboard();
+            } else {
+              toast.error('Payment verification failed. Please contact support.');
+            }
+          } catch (err) {
+            console.error('Verification error:', err);
+            toast.error('Payment verification error. Please try again.');
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+        },
+        theme: { color: '#2563eb' },
+        modal: {
+          ondismiss: () => {
+            toast.info('Payment cancelled');
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      console.error('Activation error:', err);
+      toast.error(err.message || 'Could not initiate payment. Please try again.');
+    }
   };
 
   const riskScore = useMemo(() => {
@@ -146,7 +243,7 @@ export default function WorkerDashboard() {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const todayIndex = new Date().getDay(); // 0 is Sun
     const sortedDays = [...days.slice(todayIndex), ...days.slice(0, todayIndex)];
-    
+
     return sortedDays.map((day, idx) => {
       // Find claims for this day index (simulated for now by index mapping)
       const claimTotal = demoClaims
@@ -166,26 +263,34 @@ export default function WorkerDashboard() {
   }, [demoClaims, dailyIncome]);
 
   const generateMockLocationHistory = (isSpoofed: boolean) => {
-    // Generate an array of 3 timestamped coordinates
     const now = new Date();
-    // Genuine route: points are within a few hundred meters, traversed over 15 minutes
-    // Spoofed route: jumped 200km instantly
-    
-    // Chennai coordinates roughly
-    const baseLat = 13.0827; 
-    const baseLng = 80.2707;
+
+    // Dynamic Base Coordinates based on User City
+    let baseLat = 13.0827;
+    let baseLng = 80.2707;
+    const userCity = user?.city?.toLowerCase().trim();
+
+    if (userCity === 'mumbai') {
+      baseLat = 19.0760;
+      baseLng = 72.8777;
+    } else if (userCity === 'tirupur' || userCity === 'tiruppur') {
+      baseLat = 11.0124;
+      baseLng = 77.3398;
+    }
 
     if (isSpoofed) {
+      // Spoofed route: Jumped hundreds of km instantly
       return [
-        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString() },
-        { lat: baseLat + 2, lng: baseLng + 2, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString() }, // Jumped hundreds of km in 10 mins
-        { lat: baseLat + 2.5, lng: baseLng + 2.5, timestamp: now.toISOString() }
+        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString(), isMocked: true },
+        { lat: baseLat + 2, lng: baseLng + 2, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString(), isMocked: true },
+        { lat: baseLat + 2.5, lng: baseLng + 2.5, timestamp: now.toISOString(), isMocked: true }
       ];
     } else {
+      // Genuine route: Small movement over time
       return [
-        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString() },
-        { lat: baseLat + 0.001, lng: baseLng + 0.001, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString() },
-        { lat: baseLat + 0.002, lng: baseLng + 0.002, timestamp: now.toISOString() }
+        { lat: baseLat, lng: baseLng, timestamp: new Date(now.getTime() - 1000 * 60 * 15).toISOString(), isMocked: false },
+        { lat: baseLat + 0.001, lng: baseLng + 0.001, timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString(), isMocked: false },
+        { lat: baseLat + 0.002, lng: baseLng + 0.002, timestamp: now.toISOString(), isMocked: false }
       ];
     }
   };
@@ -195,9 +300,27 @@ export default function WorkerDashboard() {
       toast.error("Shield Inactive", { description: "Please activate your policy first to qualify for claims." });
       return;
     }
-    const mockLocationHistory = generateMockLocationHistory(simulateSpoofedGPS);
-    await triggerDisruption(type, Number(potentialPayout), user?.name || 'Worker', currentZone, mockLocationHistory);
-    
+    const mockLocationHistory = generateLocationHistory(simulateSpoofedGPS,
+      user?.city?.toLowerCase() === 'mumbai' ? 19.0760 : user?.city?.toLowerCase() === 'tirupur' ? 11.0124 : 13.0827,
+      user?.city?.toLowerCase() === 'mumbai' ? 72.8777 : user?.city?.toLowerCase() === 'tirupur' ? 77.3398 : 80.2707
+    );
+    const hardwareData = {
+      deviceId: "GH-8829-99B", // Hardcoded mock HWID
+      isRooted: simulateRooted,
+      emulatorDetected: simulateEmulator,
+      hwIdMismatch: false,
+      isMocked: simulateSpoofedGPS
+    };
+
+    await triggerDisruption(
+      type,
+      Number(potentialPayout),
+      user?.name || 'Worker',
+      currentZone,
+      mockLocationHistory,
+      hardwareData
+    );
+
     // Explicit sync with DB after simulation
     await fetchUserPolicy();
     await fetchUserClaims();
@@ -254,6 +377,54 @@ export default function WorkerDashboard() {
               ))}
             </select>
           </div>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="relative"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              {insights?.alerts?.length > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full border-2 border-background animate-pulse" />
+              )}
+            </Button>
+
+            {/* AI NOTIFICATION CENTER */}
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-card border border-border shadow-2xl rounded-2xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-4 border-b border-border flex items-center justify-between bg-primary/5">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Sparkles className="w-3 h-3" /> Shield Radar
+                  </h3>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowNotifications(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {insights?.alerts?.length > 0 ? (
+                    insights.alerts.map((alert: any, i: number) => (
+                      <div key={i} className="p-4 border-b border-border hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center gap-2 mb-1">
+                          <AlertTriangle className={`w-3 h-3 ${alert.severity === 'High' ? 'text-destructive' : 'text-warning'}`} />
+                          <span className="text-[10px] font-bold uppercase opacity-60">{alert.day} Projection</span>
+                        </div>
+                        <p className="text-xs font-semibold text-foreground leading-tight">{alert.message}</p>
+                        <p className={`text-[9px] mt-1 font-bold ${alert.severity === 'High' ? 'text-primary' : 'text-success'}`}>
+                          AI Recommendation: {alert.recommendedTier || (alert.severity === 'High' ? 'Titanium' : 'Standard')} Protection
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-muted-foreground italic text-xs">
+                      No active disruption risks detected.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <Button variant="ghost" size="sm" onClick={handleLogout}>
             <LogOut className="w-4 h-4" />
           </Button>
@@ -306,20 +477,40 @@ export default function WorkerDashboard() {
 
                 {/* Package */}
                 <div className="space-y-3 pt-4 border-t border-border">
-                  <label className="text-sm font-medium text-foreground">Premium Package</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['basic', 'standard', 'premium'] as const).map((pkg) => (
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium text-foreground">Premium Package</label>
+                    <Badge variant="outline" className="text-[9px] uppercase font-bold text-primary border-primary/20">AI Optimized</Badge>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {insights?.tiers ? insights.tiers.map((tier: any) => (
                       <button
-                        key={pkg}
-                        onClick={() => setPackageType(pkg)}
-                        className={`py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${packageType === pkg
-                          ? 'gradient-primary text-primary-foreground border-primary/50 shadow-glow-sm'
-                          : 'bg-background border-border text-muted-foreground hover:border-primary/30'
+                        key={tier.id}
+                        onClick={() => {
+                          setPackageType(tier.id);
+                          setCoverageFactor(tier.coverage / (dailyIncome * 7));
+                        }}
+                        className={`p-3 rounded-xl text-left transition-all border relative flex justify-between items-center ${packageType === tier.id
+                          ? 'bg-primary/10 border-primary/50 shadow-glow-sm'
+                          : 'bg-background border-border hover:border-primary/30'
                           }`}
                       >
-                        {pkg}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold uppercase tracking-wider">{tier.name}</span>
+                            {tier.recommended && (
+                              <Badge className="bg-success text-success-foreground text-[8px] h-4 font-black">AI CHOICE</Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">₹{tier.coverage.toLocaleString()} total coverage</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-black text-primary">₹{tier.premium}</p>
+                          <p className="text-[8px] uppercase text-muted-foreground font-medium">Weekly</p>
+                        </div>
                       </button>
-                    ))}
+                    )) : (
+                      <div className="h-10 bg-muted/20 animate-pulse rounded-lg" />
+                    )}
                   </div>
                 </div>
 
@@ -335,9 +526,9 @@ export default function WorkerDashboard() {
                         disabled={isPolicyActive}
                         onClick={() => {
                           if (isPolicyActive) return;
-                          setActiveTriggers(prev => 
-                            prev.includes(trigger.id) 
-                              ? prev.filter(t => t !== trigger.id) 
+                          setActiveTriggers(prev =>
+                            prev.includes(trigger.id)
+                              ? prev.filter(t => t !== trigger.id)
                               : [...prev, trigger.id]
                           );
                         }}
@@ -458,12 +649,28 @@ export default function WorkerDashboard() {
                       <MapPin className="w-3 h-3 mr-1" /> Zone Curfew
                     </Button>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-primary-foreground/20 flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/70">Simulate GPS Spoofing</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={simulateSpoofedGPS} onChange={() => setSimulateSpoofedGPS(!simulateSpoofedGPS)} />
-                      <div className="w-9 h-5 bg-background border border-primary-foreground/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-destructive"></div>
-                    </label>
+                  <div className="mt-4 pt-3 border-t border-primary-foreground/20 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/70">Simulate GPS Spoofing</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={simulateSpoofedGPS} onChange={() => setSimulateSpoofedGPS(!simulateSpoofedGPS)} />
+                        <div className="w-9 h-5 bg-background border border-primary-foreground/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-destructive"></div>
+                      </label>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/70">Simulate Rooted Device</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={simulateRooted} onChange={() => setSimulateRooted(!simulateRooted)} />
+                        <div className="w-9 h-5 bg-background border border-primary-foreground/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-destructive"></div>
+                      </label>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/70">Simulate Emulator Engine</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={simulateEmulator} onChange={() => setSimulateEmulator(!simulateEmulator)} />
+                        <div className="w-9 h-5 bg-background border border-primary-foreground/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-destructive"></div>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -475,15 +682,15 @@ export default function WorkerDashboard() {
         <div className="lg:col-span-8 space-y-6">
           {/* Metrics */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <MetricCard 
-              label="Real-time Risk Score" 
-              value={metrics.risk_score !== null ? `${metrics.risk_score}%` : '--'} 
-              color={metrics.risk_score && metrics.risk_score > 60 ? 'text-destructive' : 'text-success'} 
+            <MetricCard
+              label="Real-time Risk Score"
+              value={metrics.risk_score !== null ? `${metrics.risk_score}%` : '--'}
+              color={metrics.risk_score && metrics.risk_score > 60 ? 'text-destructive' : 'text-success'}
             />
-            <MetricCard 
-              label="Predicted Loss" 
-              value={metrics.predicted_loss !== null ? `₹${metrics.predicted_loss}` : '--'} 
-              color="text-warning" 
+            <MetricCard
+              label="Predicted Loss"
+              value={metrics.predicted_loss !== null ? `₹${metrics.predicted_loss}` : '--'}
+              color="text-warning"
             />
             <MetricCard label="Coverage Amount" value={`₹${metrics.coverage_amount}`} color="text-primary" />
             <MetricCard label="Active Policies" value={metrics.active_policies_count.toString()} color="text-primary" />
@@ -513,26 +720,26 @@ export default function WorkerDashboard() {
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">Policy Period</p>
                   <p className="text-xs font-bold">
-                    {isPolicyActive && activePolicy ? 
-                      `${new Date(activePolicy.start_date).toLocaleDateString()} - ${new Date(activePolicy.end_date).toLocaleDateString()}` 
+                    {isPolicyActive && activePolicy ?
+                      `${new Date(activePolicy.start_date).toLocaleDateString()} - ${new Date(activePolicy.end_date).toLocaleDateString()}`
                       : 'N/A'}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">Coverage Level</p>
                   <p className="text-xs font-bold text-primary">
-                    {isPolicyActive && activePolicy 
-                      ? `${Math.round(activePolicy.coverage_level * 100)}% Stored` 
+                    {isPolicyActive && activePolicy
+                      ? `${Math.round(activePolicy.coverage_level * 100)}% Stored`
                       : `${Math.round(coverageFactor * 100)}% Draft`}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">Trigger Protection</p>
                   <p className="text-xs font-bold text-primary">
-                    {isPolicyActive && activePolicy 
-                      ? activePolicy.selected_triggers?.split(',').map((t: string) => 
-                          TRIGGER_META.find(m => m.id === t)?.label || t
-                        ).join(', ') 
+                    {isPolicyActive && activePolicy
+                      ? activePolicy.selected_triggers?.split(',').map((t: string) =>
+                        TRIGGER_META.find(m => m.id === t)?.label || t
+                      ).join(', ')
                       : `${activeTriggers.length} Selected`}
                   </p>
                 </div>
@@ -551,21 +758,23 @@ export default function WorkerDashboard() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <p className="text-[10px] text-muted-foreground uppercase">Current Status</p>
-                      <Badge variant="outline" className={`text-[10px] ${
-                        ['Paid', 'Approved'].includes(demoClaims[0].status) 
-                          ? 'border-success text-success' 
-                          : demoClaims[0].status === 'Rejected' 
-                            ? 'border-destructive text-destructive' 
-                            : 'border-warning text-warning'
-                      }`}>
-                        {['Paid', 'Approved'].includes(demoClaims[0].status) ? 'Approved' : demoClaims[0].status}
+                      <Badge variant="outline" className={`text-[10px] ${['Paid', 'Approved'].includes(demoClaims[0].status)
+                        ? 'border-success text-success'
+                        : demoClaims[0].status === 'Rejected'
+                          ? 'border-destructive text-destructive'
+                          : 'border-warning text-warning'
+                        }`}>
+                        {demoClaims[0].status === 'Rejected'
+                          ? 'GPS Spoofing Detected ❌'
+                          : demoClaims[0].status === 'Approved' || demoClaims[0].status === 'Paid'
+                            ? 'GPS Verified ✅'
+                            : demoClaims[0].status}
                       </Badge>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] text-muted-foreground uppercase">Trigger Reason</p>
+                      <p className="text-[10px] text-muted-foreground uppercase">Reasoning</p>
                       <p className="text-xs font-bold capitalize">
-                        {demoClaims[0].trigger_type} Event 
-                        <span className="ml-1 text-[10px] text-primary/70 font-mono">({demoClaims[0].zone || 'N/A'})</span>
+                        {demoClaims[0].status === 'Rejected' ? 'High Fraud Risk' : `${demoClaims[0].trigger_type} Cleared`}
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -656,13 +865,12 @@ export default function WorkerDashboard() {
                             <div className="flex items-center gap-2 mt-0.5">
                               <p className="text-[10px] text-muted-foreground">{new Date(claim.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                               <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
-                              <p className={`text-[10px] font-semibold px-1 py-0.5 rounded ${
-                                ['Paid', 'Approved'].includes(claim.status) 
-                                  ? 'bg-success/10 text-success' 
-                                  : claim.status === 'Rejected' 
-                                    ? 'bg-destructive/10 text-destructive' 
-                                    : 'bg-warning/10 text-warning'
-                              }`}>
+                              <p className={`text-[10px] font-semibold px-1 py-0.5 rounded ${['Paid', 'Approved'].includes(claim.status)
+                                ? 'bg-success/10 text-success'
+                                : claim.status === 'Rejected'
+                                  ? 'bg-destructive/10 text-destructive'
+                                  : 'bg-warning/10 text-warning'
+                                }`}>
                                 {claim.status}
                               </p>
                             </div>
@@ -688,7 +896,7 @@ export default function WorkerDashboard() {
                                       description: `₹${data.payout_amount} transferred instantly. Txn: ${data.transaction_id}`,
                                       icon: <ShieldCheck className="w-4 h-4 text-success" />
                                     });
-                                    fetchUserClaims(); 
+                                    fetchUserClaims();
                                   } else {
                                     toast.error(data.error);
                                   }

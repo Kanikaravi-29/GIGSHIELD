@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
   const [workers, setWorkers] = useState<any[]>([]);
   const [claims, setClaims] = useState<any[]>([]);
   const [fraudStats, setFraudStats] = useState<any>(null);
+  const [predictiveData, setPredictiveData] = useState<any[]>([]);
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [cityFilter, setCityFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('all');
+  const [riskFilter, setRiskFilter] = useState('all');
 
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -62,6 +65,7 @@ export default function AdminDashboard() {
       if (isAdmin) {
         requests.claims = fetch(`${API}/api/admin/claims`, { headers: authHeaders });
         requests.fraud = fetch(`${API}/api/admin/fraud-stats`, { headers: authHeaders });
+        requests.forecast = fetch(`${API}/api/admin/forecast`, { headers: authHeaders });
       }
 
       const results: any = {};
@@ -78,6 +82,7 @@ export default function AdminDashboard() {
       if (results.pending) setPendingUsers(results.pending);
       if (results.claims) setClaims(results.claims);
       if (results.fraud) setFraudStats(results.fraud);
+      if (results.forecast) setPredictiveData(results.forecast);
     } catch (err) {
       toast.error('Failed to load admin data');
     } finally {
@@ -198,26 +203,6 @@ export default function AdminDashboard() {
     });
   }, [claims]);
 
-  const predictiveData = useMemo(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    // Simulation: Higher risk mid-week due to predicted weather events
-    const baseRiskMap = [12, 15, 65, 80, 40, 20, 10]; // e.g. Wed/Thu rainstorm
-    
-    // Scale by total recent claims
-    const recentClaimsTotal = claims.slice(0, 10).reduce((sum, c) => sum + c.payout_amount, 0) || 5000;
-    
-    return days.map((day, i) => {
-      const risk = baseRiskMap[i];
-      const predictedClaims = Math.round((recentClaimsTotal * risk) / 100);
-      
-      return {
-        day,
-        riskScore: risk,
-        predictedClaims,
-        events: risk > 50 ? 'Rainstorm Expected' : 'Normal Operations'
-      };
-    });
-  }, [claims]);
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -274,9 +259,9 @@ export default function AdminDashboard() {
             <OverviewCard icon={DollarSign} label="Total Payouts" value={`₹${(stats?.totalPayouts ?? 0).toLocaleString()}`} color="text-warning" />
             <OverviewCard 
               icon={TrendingUp} 
-              label="Loss Ratio" 
-              value={`${Math.round(((stats?.totalPayouts ?? 0) / (Math.max(stats?.activePolicies ?? 1, 1) * 200 * 4)) * 100)}%`} 
-              color={(((stats?.totalPayouts ?? 0) / (Math.max(stats?.activePolicies ?? 1, 1) * 200 * 4)) * 100) > 60 ? 'text-destructive' : 'text-success'} 
+              label="AI Loss Projection" 
+              value={`${stats?.mlLossRatio ?? 0}%`} 
+              color={(stats?.mlLossRatio ?? 0) > 60 ? 'text-destructive' : 'text-success'} 
             />
             <OverviewCard icon={AlertCircle} label="Suspicious" value={String(stats?.suspicious ?? 0)} color="text-destructive" />
             <OverviewCard icon={ClipboardCheck} label="Review Queue" value={String(stats?.reviewQueue ?? 0)} color="text-warning" />
@@ -373,7 +358,7 @@ export default function AdminDashboard() {
                   <CardHeader>
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-warning" /> Next 7 Days Forecast
+                        <Sparkles className="w-4 h-4 text-warning animate-pulse" /> Next 7 Days Forecast
                       </CardTitle>
                       <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[9px]">AI Prediction</Badge>
                     </div>
@@ -490,8 +475,21 @@ export default function AdminDashboard() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className="text-sm font-medium text-foreground">
-                  Claims & Verification Log <span className="text-muted-foreground font-normal">({claims.length} total)</span>
+                <CardTitle className="text-sm font-medium text-foreground flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    Claims & Verification Log <span className="text-muted-foreground font-normal">({claims.length} total)</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={riskFilter} onValueChange={setRiskFilter}>
+                      <SelectTrigger className="h-8 text-xs w-32 bg-background border-border"><SelectValue placeholder="Risk Level" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Risk Levels</SelectItem>
+                        <SelectItem value="LOW">Low Risk</SelectItem>
+                        <SelectItem value="MEDIUM">Medium Risk</SelectItem>
+                        <SelectItem value="HIGH">High Risk</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -510,48 +508,60 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {claims.length === 0 ? (
-                        <tr><td colSpan={8} className="py-8 text-center text-muted-foreground text-[11px]">No claims in database yet. Trigger a disruption from the Worker Dashboard.</td></tr>
-                      ) : claims.map((c: any) => (
-                        <React.Fragment key={c.id}>
-                          <tr
-                            onClick={() => setSelectedClaim(selectedClaim?.id === c.id ? null : c)}
-                            className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-background ${selectedClaim?.id === c.id ? 'bg-primary/5' : ''}`}
-                          >
-                            <td className="py-2.5 font-semibold text-foreground">{c.worker_name} <span className="text-[10px] text-muted-foreground ml-1">({c.platform_id})</span></td>
-                            <td className="py-2.5 text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
-                            <td className="py-2.5 capitalize text-muted-foreground">{c.trigger_type} Event</td>
-                            <td className="py-2.5 text-muted-foreground">{c.city} <span className="text-[10px] text-primary/70 font-mono">({c.zone || 'N/A'})</span></td>
-                            <td className="py-2.5 text-right font-mono font-bold text-success">₹{c.payout_amount.toLocaleString()}</td>
-                            <td className="py-2.5 text-center">
-                              <Badge className={`text-[9px] border-none ${c.status === 'Approved' ? 'bg-success/20 text-success' : c.status === 'Rejected' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning'}`}>
-                                {c.status}
-                              </Badge>
-                            </td>
-                            <td className="py-2.5 text-center">
-                              <Badge variant="outline" className={`text-[9px] ${c.fraud_risk === 'Low' ? 'text-success border-success/30' : 'text-destructive border-destructive/30 animate-pulse'}`}>
-                                {c.fraud_risk} Risk
-                              </Badge>
-                            </td>
-                            <td className="py-2.5 text-center">
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Activity className="w-3 h-3" /></Button>
-                            </td>
-                          </tr>
+                      {(() => {
+                        const displayClaims = claims.filter(c => riskFilter === 'all' || c.fraud_risk === riskFilter);
+                        
+                        if (displayClaims.length === 0) {
+                          return <tr><td colSpan={8} className="py-8 text-center text-muted-foreground text-[11px]">No claims match the current filters.</td></tr>;
+                        }
 
-                          {selectedClaim?.id === c.id && (
-                            <tr>
-                              <td colSpan={8} className="p-0 border-b border-border/50 bg-primary/5">
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: 'auto' }}
-                                  className="p-6 space-y-6 overflow-hidden"
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <h3 className="text-sm font-bold text-foreground">Verification Panel</h3>
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border text-[10px] font-mono text-muted-foreground">
-                                      <Fingerprint className="w-3 h-3" /> Claim #{selectedClaim.id}
+                        return displayClaims.map((c: any) => (
+                          <React.Fragment key={c.id}>
+                            <tr
+                              onClick={() => setSelectedClaim(selectedClaim?.id === c.id ? null : c)}
+                              className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-background ${selectedClaim?.id === c.id ? 'bg-primary/5' : ''}`}
+                            >
+                              <td className="py-2.5 font-semibold text-foreground">
+                                {c.worker_name} <span className="text-[10px] text-muted-foreground ml-1">({c.platform_id})</span>
+                                {c.gps_match === 0 && (
+                                  <Badge className={`ml-2 border-none text-[8px] h-4 font-black ${c.fraud_risk === 'HIGH' ? 'bg-destructive text-white' : 'bg-warning text-warning-foreground'}`}>
+                                    {c.fraud_risk === 'HIGH' ? 'SPOOFED' : 'NO GPS'}
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="py-2.5 text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
+                              <td className="py-2.5 capitalize text-muted-foreground">{c.trigger_type} Event</td>
+                              <td className="py-2.5 text-muted-foreground">{c.city} <span className="text-[10px] text-primary/70 font-mono">({c.zone || 'N/A'})</span></td>
+                              <td className="py-2.5 text-right font-mono font-bold text-success">₹{c.payout_amount.toLocaleString()}</td>
+                              <td className="py-2.5 text-center">
+                                <Badge className={`text-[9px] border-none ${c.status === 'Approved' ? 'bg-success/20 text-success' : c.status === 'Rejected' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning'}`}>
+                                  {c.status}
+                                </Badge>
+                              </td>
+                              <td className="py-2.5 text-center">
+                                <Badge variant="outline" className={`text-[9px] ${c.fraud_risk === 'LOW' ? 'text-success border-success/30' : c.fraud_risk === 'MEDIUM' ? 'text-warning border-warning/30' : 'text-destructive border-destructive/30 animate-pulse'}`}>
+                                  {c.fraud_risk} {c.fraud_score ? `(${c.fraud_score})` : ''}
+                                </Badge>
+                              </td>
+                              <td className="py-2.5 text-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Activity className="w-3 h-3" /></Button>
+                              </td>
+                            </tr>
+
+                            {selectedClaim?.id === c.id && (
+                              <tr>
+                                <td colSpan={8} className="p-0 border-b border-border/50 bg-primary/5">
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="p-6 space-y-6 overflow-hidden"
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <h3 className="text-sm font-bold text-foreground">Verification Panel</h3>
+                                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border text-[10px] font-mono text-muted-foreground">
+                                        <Fingerprint className="w-3 h-3" /> Claim #{selectedClaim.id}
+                                      </div>
                                     </div>
-                                  </div>
 
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <DetailBlock label="FULL NAME" value={selectedClaim.worker_name} />
@@ -572,8 +582,8 @@ export default function AdminDashboard() {
                                         </div>
                                       </div>
                                       <div className="text-right">
-                                        <span className={`text-4xl font-black font-mono leading-none ${selectedClaim.fraud_risk === 'High' ? 'text-destructive' : selectedClaim.fraud_risk === 'Medium' ? 'text-warning' : 'text-success'}`}>
-                                          {selectedClaim.fraud_risk === 'High' ? '88' : selectedClaim.fraud_risk === 'Medium' ? '54' : '42'}/100
+                                        <span className={`text-4xl font-black font-mono leading-none ${selectedClaim.fraud_score > 70 ? 'text-destructive' : selectedClaim.fraud_score > 35 ? 'text-warning' : 'text-success'}`}>
+                                          {selectedClaim.fraud_score || 0}/100
                                         </span>
                                       </div>
                                     </div>
@@ -583,20 +593,15 @@ export default function AdminDashboard() {
                                   </div>
 
                                   <div className="flex gap-4">
-                                    {user?.adminType === 'control' && selectedClaim.status === 'Under Review' && (
+                                    {(['Approved', 'Under Review', 'Rejected'].includes(selectedClaim.status)) && (
                                       <>
                                         <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Approved')} className="flex-1 bg-success hover:bg-success/90 h-12 text-sm font-bold gap-2">
-                                          <ThumbsUp className="w-4 h-4" /> Approve Claim
+                                          <ThumbsUp className="w-4 h-4" /> Force Approve
                                         </Button>
                                         <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Rejected')} variant="outline" className="flex-1 border-destructive text-destructive hover:bg-destructive/10 h-12 text-sm font-bold gap-2">
-                                          <ThumbsDown className="w-4 h-4" /> Reject Claim
+                                          <ThumbsDown className="w-4 h-4" /> Force Reject
                                         </Button>
                                       </>
-                                    )}
-                                    {user?.adminType === 'security' && selectedClaim.status === 'Under Review' && (
-                                      <Button size="lg" disabled={actionLoading} onClick={() => handleClaimAction(selectedClaim.id, 'Flagged')} variant="outline" className="flex-1 border-warning text-warning hover:bg-warning/10 h-12 text-sm font-bold gap-2">
-                                        <Flag className="w-4 h-4" /> Flag for Review
-                                      </Button>
                                     )}
                                     <Button variant="ghost" size="lg" onClick={() => setSelectedClaim(null)} className="px-6 h-12"><XCircle className="w-5 h-5 mr-2" /> Close Audit</Button>
                                   </div>
@@ -604,8 +609,9 @@ export default function AdminDashboard() {
                               </td>
                             </tr>
                           )}
-                        </React.Fragment>
-                      ))}
+                          </React.Fragment>
+                        ));
+                      })()}
                     </tbody>
                   </table>
                 </div>
