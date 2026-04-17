@@ -4,14 +4,17 @@ GigShield PRO is a state-of-the-art parametric insurance platform designed for e
 
 ---
 
-## 🔗 Repository Link
+## Repository Link
 [GIGSHIELD PRO Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
 
-## 🎥 Demo Video
+## Demo Video
 [Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)
 
-## 🌐 Try It Out
+## Try It Out
 [Live App](https://gigshield-iia9.onrender.com)
+
+## PPT LINK
+[PPT](https://www.canva.com/design/DAHD_yySh-4/C9xv1mjJspasOBrAfEFNhw/edit?utm_content=DAHD_yySh-4&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
 ---
 
@@ -27,7 +30,7 @@ OTP : 123456/1234
 
 ---
 
-## 🚀 Phase 3: End-to-End Intelligent Flow
+## Phase 3: End-to-End Intelligent Flow
 
 GigShield PRO demonstrates a complete **AI-driven, fraud-aware parametric insurance workflow**:
 
@@ -46,13 +49,13 @@ GigShield PRO demonstrates a complete **AI-driven, fraud-aware parametric insura
 
 ---
 
-## 🛰️ Phase 3: The Intelligence Layer
+## Phase 3: The Intelligence Layer
 
 GigShield PRO introduces a **fully automated AI ecosystem** with real-time verification and fraud prevention.
 
 ---
 
-### 🧠 1. Neural Fraud Engine (TensorFlow.js)
+### 1. Neural Fraud Engine (TensorFlow.js)
 
 A 3-layer deep learning model evaluates claims in milliseconds.
 
@@ -65,12 +68,12 @@ A 3-layer deep learning model evaluates claims in milliseconds.
 - Device integrity signals
 
 #### Decision Logic:
-- **LOW (0–30)** → ✅ Auto Approved  
-- **HIGH (31–100)** → ❌ Rejected / Fraud Flag  
+- **LOW (0–30)** → Auto Approved  
+- **HIGH (31–100)** → Rejected / Fraud Flag  
 
 ---
 
-### 🛰️ 2. Advanced GPS Anti-Spoofing System
+### 2. Advanced GPS Anti-Spoofing System
 
 Multi-layer GPS validation ensures authenticity:
 
@@ -93,7 +96,7 @@ Multi-layer GPS validation ensures authenticity:
 
 ---
 
-### 💳 3. Razorpay Integration & Payout Simulation
+### 3. Razorpay Integration & Payout Simulation
 
 #### Premium Payment (Worker Side)
 - Razorpay Checkout used for policy activation
@@ -102,11 +105,9 @@ Multi-layer GPS validation ensures authenticity:
 - Approved claims trigger simulated payout
 - Reflected instantly in dashboard
 
-> ⚠️ Note: Real payout APIs are not required. Simulation is sufficient for demo.
-
 ---
 
-### 🗺️ 4. Real-Time Disruption Map
+### 4. Real-Time Disruption Map
 
 - Live GPS tracking using `navigator.geolocation`
 - “You are here” dynamic marker
@@ -115,7 +116,7 @@ Multi-layer GPS validation ensures authenticity:
 
 ---
 
-## 🎯 Target Persona
+## Target Persona
 
 ### Ravi (Delivery Partner)
 - **City:** Chennai  
@@ -128,7 +129,7 @@ GigShield PRO automatically compensates him using parametric triggers.
 
 ---
 
-## ⚙️ Core Features
+## Core Features
 
 - AI-based fraud scoring (0–100)
 - GPS anti-spoofing detection
@@ -141,7 +142,7 @@ GigShield PRO automatically compensates him using parametric triggers.
 
 ---
 
-## 🔁 Persona-Based Workflow
+## Persona-Based Workflow
 
 1. Worker registers and logs in  
 2. Enters city, platform, income  
@@ -155,7 +156,7 @@ GigShield PRO automatically compensates him using parametric triggers.
 
 ---
 
-## 💰 Weekly Premium Model
+## Weekly Premium Model
 
 Premium is calculated using:
 
@@ -172,7 +173,7 @@ Premium is calculated using:
 
 ---
 
-## ⚡ Parametric Triggers
+## Parametric Triggers
 
 Claims are triggered automatically based on:
 
@@ -190,7 +191,7 @@ Claims are triggered automatically based on:
 
 ---
 
-## 🛡️ Phase 3 Fraud Detection System
+## Phase 3 Fraud Detection System
 
 ### Detection Capabilities:
 
@@ -202,7 +203,7 @@ Claims are triggered automatically based on:
 
 ---
 
-### 🔢 Fraud Score
+### Fraud Score
 
 **Range:** 0 – 100  
 
@@ -211,14 +212,14 @@ Claims are triggered automatically based on:
 
 ---
 
-### 🚦 Risk Classification
+### Risk Classification
 
 - **LOW (0–30)** → Auto Approved  
 - **HIGH (31–100)** → Rejected  
 
 ---
 
-### ✅ Outcome
+### Outcome
 
 - Fast processing for real users  
 - Fraud prevention at scale  
@@ -227,7 +228,7 @@ Claims are triggered automatically based on:
 
 ---
 
-## 📊 Admin Dashboard
+## Admin Dashboard
 
 Provides insurers with:
 
@@ -239,7 +240,7 @@ Provides insurers with:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - React.js  
@@ -265,7 +266,7 @@ Provides insurers with:
 
 ---
 
-## 💾 Data Persistence
+## Data Persistence
 
 Stored in SQLite:
 
@@ -280,7 +281,7 @@ Stored in SQLite:
 
 ---
 
-## 🎯 End Goal
+## End Goal
 
 GigShield PRO delivers a complete:
 
@@ -291,7 +292,7 @@ GigShield PRO delivers a complete:
 
 ---
 
-## 📈 Innovation
+## Innovation
 
 - Hyper-local insurance  
 - AI fraud detection  
@@ -301,7 +302,7 @@ GigShield PRO delivers a complete:
 
 ---
 
-## 🌍 Market Opportunity
+## Market Opportunity
 
 Targets:
 
@@ -316,7 +317,7 @@ Targets:
 
 ---
 
-## 📦 Phase 2 Status
+## Phase 2 Status
 
 ✔ Authentication  
 ✔ Policy system  
@@ -326,7 +327,7 @@ Targets:
 
 ---
 
-## 🔥 Phase 3 Enhancements
+## Phase 3 Enhancements
 
 ✔ AI Fraud Engine  
 ✔ GPS Anti-Spoofing  
