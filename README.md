@@ -1,323 +1,327 @@
-# 🛡️ GigShield: AI-Powered Parametric Insurance for Gig Workers (Phase 3)
+# 🛡️ GigShield PRO — AI-Powered Parametric Insurance
 
-GigShield is an AI-powered parametric insurance platform designed to protect delivery workers in India’s gig economy from income loss caused by external disruptions such as heavy rain, extreme heat, curfews, warehouse outages, and delivery platform failures.
-
-The platform implements a smart, transparent, and automated insurance system where workers receive weekly coverage and payouts are triggered automatically based on predefined disruption conditions, enhanced with AI-driven fraud detection and GPS validation.
+GigShield PRO is a state-of-the-art parametric insurance platform designed for e-commerce delivery partners. By eliminating the traditional claims process and leveraging AI for fraud detection and risk assessment, GigShield provides instant financial protection against environmental and platform disruptions.
 
 ---
 
 ## 🔗 Repository Link
-
-[GIGSHIELD Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
-
----
+[GIGSHIELD PRO Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
 
 ## 🎥 Demo Video
-
 [Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)
 
----
-
 ## 🌐 Try It Out
-
-[Live Application](https://gigshield-iia9.onrender.com)
+[Live App](https://gigshield-iia9.onrender.com)
 
 ---
 
-## 🚀 Phase 3: End-to-End Demo Flow (Fraud-Aware + Payout Simulation)
+## 🚀 Phase 3: End-to-End Intelligent Flow
 
-The GigShield platform demonstrates a complete intelligent parametric insurance flow:
+GigShield PRO demonstrates a complete **AI-driven, fraud-aware parametric insurance workflow**:
 
 1. User registers and logs in as a delivery partner  
-2. User activates a weekly insurance policy (payment simulation)  
-3. Premium is calculated dynamically based on income and risk  
+2. User activates a weekly insurance policy (Razorpay / simulation)  
+3. Premium is calculated dynamically based on income + risk  
 4. System monitors disruption signals (or simulated triggers)  
 5. Disruption event occurs (Rain / Heat / Platform Down / Curfew)  
-6. System automatically triggers a claim  
-7. GPS + Fraud Detection Engine evaluates the claim  
-8. Fraud score (0–100) is generated  
-9. Claim is classified as Low / Medium / High Risk  
+6. Claim is automatically triggered  
+7. GPS + Fraud Engine evaluates authenticity  
+8. Fraud Score (0–100) is generated  
+9. Claim is classified as LOW / HIGH risk  
 10. Approved claims trigger instant payout simulation  
-11. Worker dashboard updates with claim + payout status  
-12. Admin dashboard reflects fraud insights and analytics  
-
-This demonstrates a **fully automated, fraud-aware, zero-touch insurance system with instant payout simulation**.
+11. Worker dashboard updates with claim + payout  
+12. Admin dashboard reflects fraud analytics  
 
 ---
 
-## 🎯 Problem Statement
+## 🛰️ Phase 3: The Intelligence Layer
 
-Delivery workers earn based on completed deliveries. When disruptions such as weather events, platform outages, or city restrictions occur, their income drops significantly.
-
-Traditional insurance is:
-- Slow  
-- Manual  
-- Not suited for daily earners  
-
-GigShield solves this using:
-- Parametric insurance  
-- Automated triggers  
-- Instant payout simulation  
-- Fraud-aware verification  
+GigShield PRO introduces a **fully automated AI ecosystem** with real-time verification and fraud prevention.
 
 ---
 
-## 👤 Target Persona
+### 🧠 1. Neural Fraud Engine (TensorFlow.js)
 
-### Example: Ravi
+A 3-layer deep learning model evaluates claims in milliseconds.
+
+#### Input Features:
+- GPS speed & trajectory
+- Mock location detection (`isMocked`)
+- City mismatch (Haversine distance)
+- Payout-to-income ratio
+- Claim frequency
+- Device integrity signals
+
+#### Decision Logic:
+- **LOW (0–30)** → ✅ Auto Approved  
+- **HIGH (31–100)** → ❌ Rejected / Fraud Flag  
+
+---
+
+### 🛰️ 2. Advanced GPS Anti-Spoofing System
+
+Multi-layer GPS validation ensures authenticity:
+
+#### ✔ Hardware-Level Detection
+- Detects mock location using `isMocked` flag
+
+#### ✔ Trajectory Analysis
+- Haversine distance calculation
+- Speed > 200 km/h → flagged as impossible
+
+#### ✔ Teleportation Detection
+- >10 km jump in <60 seconds → flagged
+
+#### ✔ City Validation (Geofencing)
+- Worker must be within registered city range
+- Outside zone → flagged as mismatch
+
+#### ✔ 200km Haversine Rule
+- If user is far from registered city → treated as fraud
+
+---
+
+### 💳 3. Razorpay Integration & Payout Simulation
+
+#### Premium Payment (Worker Side)
+- Razorpay Checkout used for policy activation
+
+#### Instant Payout Simulation
+- Approved claims trigger simulated payout
+- Reflected instantly in dashboard
+
+> ⚠️ Note: Real payout APIs are not required. Simulation is sufficient for demo.
+
+---
+
+### 🗺️ 4. Real-Time Disruption Map
+
+- Live GPS tracking using `navigator.geolocation`
+- “You are here” dynamic marker
+- Risk heatmaps for cities
+- Auto-pan to current user location
+
+---
+
+## 🎯 Target Persona
+
+### Ravi (Delivery Partner)
 - **City:** Chennai  
 - **Platform:** Amazon  
 - **Daily Income:** ₹1400  
 
-### Scenario
-
-If heavy rain or a platform outage occurs, Ravi cannot complete deliveries. GigShield automatically compensates him based on disruption triggers.
-
----
-
-## ⚙️ Core Strategy
-
-GigShield provides weekly income protection using:
-
-- AI-driven risk analysis  
-- Automated parametric triggers  
-- Fraud-aware claim validation  
-- Instant payout simulation  
+#### Scenario:
+If heavy rain or platform outage occurs, Ravi loses income.  
+GigShield PRO automatically compensates him using parametric triggers.
 
 ---
 
-## 🔄 Persona-Based Workflow
+## ⚙️ Core Features
 
-1. Worker Registration  
-2. Risk Analysis  
-3. Premium Calculation  
-4. Policy Activation  
-5. Disruption Monitoring  
-6. Automatic Claim Trigger  
-7. Fraud + GPS Verification  
-8. Payout Processing  
+- AI-based fraud scoring (0–100)
+- GPS anti-spoofing detection
+- Dynamic weekly premium calculation
+- Automated parametric claim triggers
+- Instant payout simulation
+- Fraud detection dashboard
+- Hyper-local disruption monitoring
+- Predictive alerts (mock)
+
+---
+
+## 🔁 Persona-Based Workflow
+
+1. Worker registers and logs in  
+2. Enters city, platform, income  
+3. Risk score is calculated  
+4. Weekly premium is generated  
+5. Worker activates policy  
+6. System monitors disruptions  
+7. Claim auto-triggers  
+8. Fraud engine verifies claim  
+9. Approved → payout simulated instantly  
 
 ---
 
 ## 💰 Weekly Premium Model
 
-Premium depends on:
+Premium is calculated using:
 
-- Income  
-- Zone risk  
-- Disruption history  
-- Claim probability  
+- Worker income  
+- City risk level  
+- Disruption probability  
+- Historical patterns  
 
 ### Why Weekly?
-
-- Matches gig income cycle  
 - Affordable  
 - Flexible  
+- Matches gig income cycles  
+- Dynamic risk adjustment  
 
 ---
 
 ## ⚡ Parametric Triggers
 
-- Heavy Rain  
+Claims are triggered automatically based on:
+
+- Heavy rainfall  
 - Heatwave  
-- Platform Outage  
-- Warehouse Disruption  
+- Platform outage  
+- Warehouse failure  
 - Curfew  
 
-### Benefits
-
+### Benefits:
 - No manual claims  
 - Instant processing  
 - Transparent rules  
+- Fast payouts  
 
 ---
 
-## 🧠 Phase 3 Implementation
+## 🛡️ Phase 3 Fraud Detection System
 
-### 1. Advanced Fraud Detection
+### Detection Capabilities:
 
-#### Detection Layers
-
-- **GPS Spoofing Detection**
-  - Mock location detection (`isMocked`)
-  - Impossible speed (> 200 km/h)
-  - Sudden location jumps
-
-- **City / Zone Validation**
-  - Compares GPS vs registered city  
-  - Flags mismatches  
-
-- **Repeated Claim Detection**
-  - Identifies abnormal claim patterns  
-
-- **Income vs Payout Check**
-  - Detects unrealistic claims  
+- GPS spoofing detection  
+- Impossible speed detection  
+- City mismatch validation  
+- Repeated claim detection  
+- Income vs payout anomaly  
 
 ---
 
-### 2. AI-Based Fraud Scoring
+### 🔢 Fraud Score
 
-Fraud Score Range: **0 – 100**
+**Range:** 0 – 100  
 
-- Low score → Genuine  
-- High score → Suspicious  
-
-#### Features Used:
-- GPS integrity  
-- Movement patterns  
-- City mismatch  
-- Claim frequency  
-- Income ratio  
+- Lower → Genuine  
+- Higher → Fraud  
 
 ---
 
-### 3. Risk Classification
+### 🚦 Risk Classification
 
-- **Low Risk (0–30)**  
-  → Automatically Approved  
-
-- **Medium Risk (31–70)**  
-  → Allowed but flagged as moderately risky  
-
-- **High Risk (71–100)**  
-  → Blocked or flagged  
+- **LOW (0–30)** → Auto Approved  
+- **HIGH (31–100)** → Rejected  
 
 ---
 
-### 4. Payment & Payout Simulation
+### ✅ Outcome
 
-- Premium payment (simulation-ready for Razorpay)  
-- Instant payout simulation on approval  
-- Dashboard reflects payout instantly  
-
----
-
-### 5. GPS & Location Validation
-
-- Uses browser geolocation  
-- Tracks real user position  
-- Validates:
-  - Movement continuity  
-  - Distance from registered city  
-  - Fraud signals  
+- Fast processing for real users  
+- Fraud prevention at scale  
+- Minimal false positives  
+- Fully automated verification  
 
 ---
 
-## 🤖 AI / ML Integration
+## 📊 Admin Dashboard
 
-### Risk Score (Premium)
-Risk = (weather + traffic + disruption) / 3  
+Provides insurers with:
 
-### Fraud Score (NEW)
-Based on:
-- GPS  
-- Speed  
-- Claim patterns  
-- Income ratio  
-
-### Additional Capabilities
-
-- Predictive alerts  
-- Income loss estimation  
-- Fraud pattern detection  
-
----
-
-## 🛡️ System Behavior
-
-- Every claim is validated  
-- GPS is a critical verification layer  
-- Fraud score determines outcome  
-- Suspicious claims are flagged or blocked  
-
----
-
-## 💡 Innovation
-
-- Hyper-local insurance  
-- GPS-based fraud detection  
-- AI fraud scoring  
-- Instant payout simulation  
-- Zero-touch claims  
-
----
-
-## 📈 Market Opportunity
-
-Target users:
-- Delivery workers  
-- Logistics partners  
-- Gig economy workforce  
-
-### Value
-
-- Workers → Income protection  
-- Insurers → Fraud control  
-- Platforms → Worker retention  
+- Fraud analytics  
+- Claim monitoring  
+- Loss ratio insights  
+- GPS mismatch alerts  
+- Manual override controls  
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- Next.js  
-- React  
+- React.js  
 - TypeScript  
 - Tailwind CSS  
+- Recharts  
 
 ### Backend
 - Node.js  
 - Express.js  
 
+### AI/ML
+- TensorFlow.js  
+- Haversine Algorithm  
+
 ### Database
-- SQLite 3  
+- SQLite  
 
 ### Integrations
+- Razorpay  
 - Mapbox  
-- JWT Auth  
 - Mock APIs  
-- Razorpay (simulation-ready)  
 
 ---
 
 ## 💾 Data Persistence
 
-Stored data:
+Stored in SQLite:
 
 - Users  
 - Policies  
 - Claims  
-- Triggers  
-- Fraud scores  
-- GPS validation  
-- Payout records  
+- Payouts  
 
----
-
-## 📊 Phase 3 Completion Status
-
-✔ Registration & Authentication  
-✔ Policy Management  
-✔ Premium Calculation  
-✔ Automated Claim Trigger  
-✔ Fraud Detection Engine  
-✔ GPS Anti-Spoofing  
-✔ Instant Payout Simulation  
-✔ SQLite Persistence  
+✔ Fully persistent  
+✔ Real-time updates  
+✔ Backend integrated  
 
 ---
 
 ## 🎯 End Goal
 
-GigShield demonstrates a complete:
+GigShield PRO delivers a complete:
 
-- AI-powered  
-- Fraud-aware  
-- GPS-validated  
-- Parametric insurance system  
-
-Designed for real-world scalability in the gig economy.
+- AI-powered insurance workflow  
+- Fraud-resistant claim system  
+- GPS-verified validation layer  
+- Instant payout simulation  
 
 ---
 
-**GigShield — Protecting gig workers with intelligent, automated insurance.**
+## 📈 Innovation
+
+- Hyper-local insurance  
+- AI fraud detection  
+- Parametric automation  
+- GPS anti-spoofing  
+- Real-time dashboards  
+
+---
+
+## 🌍 Market Opportunity
+
+Targets:
+
+- Delivery workers  
+- Gig economy  
+- Logistics partners  
+
+### Value:
+- Workers → instant protection  
+- Insurers → fraud-safe automation  
+- Platforms → workforce stability  
+
+---
+
+## 📦 Phase 2 Status
+
+✔ Authentication  
+✔ Policy system  
+✔ Premium calculation  
+✔ Claim automation  
+✔ Data persistence  
+
+---
+
+## 🔥 Phase 3 Enhancements
+
+✔ AI Fraud Engine  
+✔ GPS Anti-Spoofing  
+✔ Razorpay Integration  
+✔ Instant Payout Simulation  
+✔ Advanced Dashboards  
+
+---
+
+*GigShield PRO — Protecting the backbone of the digital economy.*
