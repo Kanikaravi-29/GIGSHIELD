@@ -30,6 +30,13 @@ OTP : 123456/1234
 
 ---
 
+## Admin Demo Credentials
+
+Email : admin@gigshield.com
+Password : admin123
+
+---
+
 ## Phase 3: End-to-End Intelligent Flow
 
 GigShield PRO demonstrates a complete **AI-driven, fraud-aware parametric insurance workflow**:
