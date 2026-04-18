@@ -8,7 +8,7 @@ GigShield PRO is a state-of-the-art parametric insurance platform designed for e
 [GIGSHIELD PRO Repository](https://github.com/Kanikaravi-29/GIGSHIELD)
 
 ## Demo Video
-[Demo Video](https://www.youtube.com/watch?v=DtoDLq9JVos)
+[Demo Video](https://youtu.be/cjI8Py7Xqbw?si=izsqQsaZqz2A7d_g)
 
 ## Try It Out
 [Live App](https://gigshield-iia9.onrender.com)
